@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
     />
     <title>Split Screen Buttons</title>
     <style>
@@ -13,6 +13,8 @@
         padding: 0;
         border: 0;
         font-family: monospace;
+        font-size: large;
+        color: white;
       }
 
       html,
@@ -22,41 +24,67 @@
         overflow: hidden;
       }
 
-      body {
-        display: flex;
+      #container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 2fr 1fr;
+        height: 100%;
+        width: 100%;
+      }
+
+      #left-button {
+        background-color: #4f636b;
+      }
+
+      #right-button {
+        background-color: #6b6a4f;
+      }
+
+      #next-button {
+        background-color: #4f546b;
+        grid-column: 1 / -1;
       }
 
       .button {
-        flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
-        text-align: center;
-        color: white;
-        font-size: 24px;
         cursor: pointer;
-        transition: background-color 0.3s;
-      }
-
-      .left-button {
-        background-color: #007bff; /* Blue */
-      }
-
-      .right-button {
-        background-color: #28a745; /* Green */
-      }
-
-      .left-button:hover {
-        background-color: #0056b3; /* Darker blue */
-      }
-
-      .right-button:hover {
-        background-color: #218838; /* Darker green */
       }
     </style>
   </head>
   <body>
-    <div class="button left-button">A</div>
-    <div class="button right-button">B</div>
+    <div id="container">
+      <div id="left-button" class="button">A</div>
+      <div id="right-button" class="button">B</div>
+      <div id="next-button" class="button">Next</div>
+    </div>
+
+    <script>
+      const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+
+      let left_button = document.getElementById("left-button");
+      let right_button = document.getElementById("right-button");
+
+      left_button.addEventListener("click", () => {
+        fetch(`${url}/respond`, {
+          method: "POST",
+          body: "A",
+        });
+        left_button.style.background = "black";
+        right_button.style.background = "";
+      });
+      right_button.addEventListener("click", () => {
+        fetch(`${url}/respond`, {
+          method: "POST",
+          body: "B",
+        });
+        right_button.style.background = "black";
+        left_button.style.background = "";
+      });
+      document.getElementById("next-button").addEventListener("click", () => {
+        location.reload();
+      });
+    </script>
   </body>
 </html>

@@ -17,6 +17,32 @@
     <link rel="stylesheet" href="plugin/highlight/monokai.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+      integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+
+    <style>
+      #response > div {
+        background-color: aqua;
+        text-align: left;
+        padding-left: 1em;
+        color: black;
+      }
+
+      #qrcode {
+        padding: 20px;
+        background-color: #ccc;
+        width: fit-content;
+        height: fit-content;
+      }
+
+      #qrcode > img {
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
     <div class="reveal">
@@ -27,6 +53,8 @@
           <br />
           <button id="settings">Settings</button>
           <button id="who-are-you-poll">Start Poll</button>
+          <div id="qrcode"></div>
+          <div id="response"></div>
         </section>
       </div>
     </div>
@@ -43,7 +71,7 @@
     </script>
 
     <script>
-      let server_url = "http://localhost:8080";
+      let server_url = "http://192.168.0.15:8080";
       let session_id = localStorage.getItem("session_id") || "1234";
 
       function change_id(e) {
@@ -66,9 +94,47 @@
 
       document
         .getElementById("who-are-you-poll")
-        .addEventListener("click", () => {
-          update_poll_page("Hello from slides");
+        .addEventListener("click", async () => {
+          let template = await fetch("multiple_choice.template.html");
+          template = await template.text();
+          update_poll_page(template);
         });
+
+      setInterval(async () => {
+        let responses = await fetch(`${server_url}/${session_id}/responses`);
+        responses = await responses.json();
+        const total_responses = responses.length;
+        if (total_responses == 0) {
+          return;
+        }
+
+        const response_counts = new Map();
+        for (const response of responses) {
+          if (!response_counts.has(response)) {
+            response_counts.set(response, 0);
+          }
+          response_counts.set(response, response_counts.get(response) + 1);
+        }
+
+        const response_container = document.getElementById("response");
+        response_container.innerHTML = "";
+        for (const [response, count] of response_counts.entries()) {
+          const bar_elem = document.createElement("div");
+          bar_elem.innerText = `${response}: ${count}`;
+          const percentage = (count / total_responses) * 100;
+          bar_elem.style.width = `${percentage}%`;
+          response_container.appendChild(bar_elem);
+        }
+      }, 100);
+
+      const qrcode = new QRCode(document.getElementById("qrcode"), {
+        text: `${server_url}/${session_id}`,
+        width: 128,
+        height: 128,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctionLevel: QRCode.CorrectLevel.L,
+      });
     </script>
   </body>
 </html>
