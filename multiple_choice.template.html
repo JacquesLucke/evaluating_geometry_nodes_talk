@@ -66,19 +66,26 @@
       let left_button = document.getElementById("left-button");
       let right_button = document.getElementById("right-button");
 
-      left_button.addEventListener("click", () => {
+      let user_id = localStorage.getItem("user_id");
+      if (!user_id) {
+        user_id = Math.random().toString(36).substr(2, 9);
+      }
+      localStorage.setItem("user_id", user_id);
+
+      function respond(data) {
         fetch(`${url}/respond`, {
           method: "POST",
-          body: "A",
+          body: JSON.stringify({ user_id: user_id, data: data }),
         });
+      }
+
+      left_button.addEventListener("click", () => {
+        respond("A");
         left_button.style.background = "black";
         right_button.style.background = "";
       });
       right_button.addEventListener("click", () => {
-        fetch(`${url}/respond`, {
-          method: "POST",
-          body: "B",
-        });
+        respond("B");
         right_button.style.background = "black";
         left_button.style.background = "";
       });

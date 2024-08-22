@@ -103,17 +103,22 @@
       setInterval(async () => {
         let responses = await fetch(`${server_url}/${session_id}/responses`);
         responses = await responses.json();
-        const total_responses = responses.length;
-        if (total_responses == 0) {
-          return;
-        }
+        // Reverse so that latest response for each user is used.
+        responses.reverse();
 
         const response_counts = new Map();
-        for (const response of responses) {
-          if (!response_counts.has(response)) {
-            response_counts.set(response, 0);
+        const handled_users = new Set();
+        let total_responses = 0;
+        for (let response of responses) {
+          response = JSON.parse(response);
+          const user_id = response.user_id;
+          if (handled_users.has(user_id)) {
+            continue;
           }
-          response_counts.set(response, response_counts.get(response) + 1);
+          const data = response.data;
+          handled_users.add(user_id);
+          response_counts.set(data, (response_counts.get(data) || 0) + 1);
+          total_responses++;
         }
 
         const response_container = document.getElementById("response");
