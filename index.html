@@ -100,6 +100,7 @@
           update_poll_page(template);
         });
 
+      /* TODO: Only poll when actually waiting for data. */
       setInterval(async () => {
         let responses = await fetch(`${server_url}/${session_id}/responses`);
         responses = await responses.json();
@@ -130,7 +131,7 @@
           bar_elem.style.width = `${percentage}%`;
           response_container.appendChild(bar_elem);
         }
-      }, 100);
+      }, 100000);
 
       const qrcode = new QRCode(document.getElementById("qrcode"), {
         text: `${server_url}/${session_id}`,
