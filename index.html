@@ -71,7 +71,7 @@
     </script>
 
     <script>
-      let server_url = "http://192.168.0.15:8080";
+      let server_url = "https://poll.jlucke.com";
       let session_id = localStorage.getItem("session_id") || "1234";
 
       function change_id(e) {
@@ -131,7 +131,7 @@
           bar_elem.style.width = `${percentage}%`;
           response_container.appendChild(bar_elem);
         }
-      }, 100000);
+      }, 1000);
 
       const qrcode = new QRCode(document.getElementById("qrcode"), {
         text: `${server_url}/${session_id}`,
