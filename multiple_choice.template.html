@@ -24,20 +24,46 @@
         overflow: hidden;
       }
 
-      #container {
+      #page {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 2fr 1fr;
+        grid-template-columns: 1fr;
+        grid-template-rows: 3fr 1fr;
         height: 100%;
         width: 100%;
       }
 
-      #left-button {
-        background-color: #4f636b;
+      #vote-container {
+        display: grid;
+        height: 100%;
+        width: 100%;
       }
 
-      #right-button {
-        background-color: #6b6a4f;
+      @media (orientation: portrait) {
+        .vote-container-2 {
+          grid-template-columns: 1fr;
+        }
+
+        .vote-container-3 {
+          grid-template-columns: 1fr;
+        }
+
+        .vote-container-4 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (orientation: landscape) {
+        .vote-container-2 {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .vote-container-3 {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .vote-container-4 {
+          grid-template-columns: 1fr 1fr;
+        }
       }
 
       #next-button {
@@ -50,21 +76,25 @@
         justify-content: center;
         align-items: center;
         cursor: pointer;
+        border: 1em solid transparent;
+      }
+
+      .selected {
+        border: 0.5em solid rgba(0, 0, 0, 0.4);
       }
     </style>
   </head>
   <body>
-    <div id="container">
-      <div id="left-button" class="button">A</div>
-      <div id="right-button" class="button">B</div>
+    <div id="page">
+      <div id="vote-container"></div>
       <div id="next-button" class="button">Next</div>
     </div>
 
     <script>
+      let question_id = "QUESTION_ID";
+      let multiple_choice_options = "MULTIPLE_CHOICE_OPTIONS";
+      // multiple_choice_options = ["Artist", "Developer", "Teacher", "Other"];
       const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
-
-      let left_button = document.getElementById("left-button");
-      let right_button = document.getElementById("right-button");
 
       let user_id = localStorage.getItem("user_id");
       if (!user_id) {
@@ -72,26 +102,52 @@
       }
       localStorage.setItem("user_id", user_id);
 
+      const option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
+      const vote_container_elem = document.getElementById("vote-container");
+
+      async function main() {
+        vote_container_elem.classList.add(
+          `vote-container-${multiple_choice_options.length}`
+        );
+        for (const option_i in multiple_choice_options) {
+          const option = multiple_choice_options[option_i];
+          const option_elem = document.createElement("div");
+          option_elem.innerText = option;
+          option_elem.style.backgroundColor = option_colors[option_i];
+          option_elem.style.color = "black";
+          option_elem.classList.add("button");
+          vote_container_elem.appendChild(option_elem);
+          option_elem.addEventListener("click", () => {
+            onclick_option(option_elem, option);
+          });
+        }
+      }
+
+      function onclick_option(selected_option_elem, option) {
+        for (const elem of vote_container_elem.children) {
+          elem.classList.remove("selected");
+        }
+        selected_option_elem.classList.add("selected");
+
+        respond(option);
+      }
+
       function respond(data) {
         fetch(`${url}/respond`, {
           method: "POST",
-          body: JSON.stringify({ user_id: user_id, data: data }),
+          body: JSON.stringify({
+            user_id: user_id,
+            question_id: question_id,
+            data: data,
+          }),
         });
       }
 
-      left_button.addEventListener("click", () => {
-        respond("A");
-        left_button.style.background = "black";
-        right_button.style.background = "";
-      });
-      right_button.addEventListener("click", () => {
-        respond("B");
-        right_button.style.background = "black";
-        left_button.style.background = "";
-      });
       document.getElementById("next-button").addEventListener("click", () => {
         location.reload();
       });
+
+      setTimeout(main, 0);
     </script>
   </body>
 </html>

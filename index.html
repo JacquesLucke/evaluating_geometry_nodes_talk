@@ -32,15 +32,18 @@
         color: black;
       }
 
-      #qrcode {
+      .poll-qr-code {
         padding: 20px;
+        border: 0;
+        margin: 0;
         background-color: #ccc;
         width: fit-content;
         height: fit-content;
+        border-radius: 5px;
       }
 
-      #qrcode > img {
-        margin: 0;
+      .poll-qr-code > canvas {
+        display: block;
       }
     </style>
   </head>
@@ -51,10 +54,19 @@
         <section>
           Who are you?
           <br />
-          <button id="settings">Settings</button>
-          <button id="who-are-you-poll">Start Poll</button>
-          <div id="qrcode"></div>
-          <div id="response"></div>
+          <div class="poll-single-choice" id="what-are-you-poll">
+            <option>Art</option>
+            <option>Dev</option>
+            <option>Other</option>
+            <option>X</option>
+          </div>
+        </section>
+        <section>
+          What is better?
+          <div class="poll-single-choice" id="what-is-better-poll">
+            <option>Depth-First</option>
+            <option>Breath-First</option>
+          </div>
         </section>
       </div>
     </div>
@@ -72,12 +84,57 @@
 
     <script>
       let server_url = "https://poll.jlucke.com";
-      let session_id = localStorage.getItem("session_id") || "1234";
+      let session_id = localStorage.getItem("session_id") || "test";
+      const qrcode_size = 128;
 
-      function change_id(e) {
-        session_id = document.getElementById("id-input").value;
+      let responses_by_question_id = new Map();
+
+      async function main() {
+        load_responses_from_local_storage();
+
+        const polls_containers =
+          document.getElementsByClassName("poll-single-choice");
+        for (const poll_container of polls_containers) {
+          await build_single_choice_poll(poll_container);
+        }
+        update_poll_qr_codes();
+      }
+
+      async function build_single_choice_poll(poll_container) {
+        const options = [];
+        for (const option_elem of poll_container.children) {
+          options.push(option_elem.innerText);
+        }
+        const question_id = poll_container.id;
+
+        poll_container.innerHTML = "";
+        const meta_elem = document.createElement("div");
+        poll_container.appendChild(meta_elem);
+
+        const result_elem = document.createElement("div");
+        poll_container.appendChild(result_elem);
+
+        const qr_elem = document.createElement("div");
+        qr_elem.classList.add("poll-qr-code");
+        meta_elem.appendChild(qr_elem);
+
+        const settings_elem = document.createElement("button");
+        settings_elem.innerText = "Settings";
+        settings_elem.addEventListener("click", open_settings);
+        meta_elem.appendChild(settings_elem);
+
+        const start_elem = document.createElement("button");
+        start_elem.innerHTML = "Start";
+        start_elem.addEventListener("click", async () => {
+          await on_start_single_choice_poll(question_id, options, result_elem);
+        });
+        meta_elem.appendChild(start_elem);
+      }
+
+      function set_new_session_id(new_session_id) {
+        session_id = new_session_id;
         localStorage.setItem("session_id", session_id);
-        update_qr_code();
+        update_poll_qr_codes();
       }
 
       function update_poll_page(page_str) {
@@ -87,67 +144,184 @@
         });
       }
 
-      document.getElementById("settings").addEventListener("click", () => {
+      function open_settings() {
+        const settings_elem = document.createElement("div");
+
+        const session_id_elem = document.createElement("input");
+        settings_elem.appendChild(session_id_elem);
+        session_id_elem.value = session_id;
+        session_id_elem.addEventListener("change", () => {
+          set_new_session_id(session_id_elem.value);
+        });
+
+        const reset_responses_elem = document.createElement("button");
+        settings_elem.appendChild(reset_responses_elem);
+        reset_responses_elem.innerText = "Reset Responses";
+        reset_responses_elem.addEventListener("click", reset_responses);
+
         Swal.fire({
-          html: `<input onchange='change_id()' id='id-input' value='${session_id}'></input>`,
+          html: settings_elem,
         });
-      });
+      }
 
-      document
-        .getElementById("who-are-you-poll")
-        .addEventListener("click", async () => {
-          let template = await fetch("multiple_choice.template.html");
-          template = await template.text();
-          update_poll_page(template);
-        });
+      async function on_start_single_choice_poll(
+        question_id,
+        options,
+        result_elem
+      ) {
+        let template = await fetch("multiple_choice.template.html");
+        template = await template.text();
+        template = template.replace("QUESTION_ID", question_id);
+        template = template.replace(
+          '"MULTIPLE_CHOICE_OPTIONS"',
+          JSON.stringify(options)
+        );
+        update_poll_page(template);
 
-      /* TODO: Only poll when actually waiting for data. */
-      setInterval(async () => {
+        setInterval(async () => {
+          handle_single_choice_responses(question_id, options, result_elem);
+        }, 500);
+      }
+
+      async function handle_single_choice_responses(
+        question_id,
+        valid_options,
+        result_elem
+      ) {
         let responses = await fetch(`${server_url}/${session_id}/responses`);
         responses = await responses.json();
-        // Reverse so that latest response for each user is used.
-        responses.reverse();
 
-        const response_counts = new Map();
-        const handled_users = new Set();
-        let total_responses = 0;
-        for (let response of responses) {
-          response = JSON.parse(response);
-          const user_id = response.user_id;
-          if (handled_users.has(user_id)) {
+        for (const response of responses) {
+          const { question_id, user_id, data } = JSON.parse(response);
+          if (!question_id || !user_id || !data) {
             continue;
           }
-          const data = response.data;
-          handled_users.add(user_id);
-          response_counts.set(data, (response_counts.get(data) || 0) + 1);
-          total_responses++;
+          if (!valid_options.includes(data)) {
+            continue;
+          }
+          add_response_to_global_map({ question_id, user_id, data });
+        }
+        store_responses_in_local_storage();
+
+        result_elem.innerHTML = "";
+        const question_responses = responses_by_question_id.get(question_id);
+        if (!question_responses) {
+          return;
         }
 
-        const response_container = document.getElementById("response");
-        response_container.innerHTML = "";
-        for (const [response, count] of response_counts.entries()) {
-          const bar_elem = document.createElement("div");
-          bar_elem.innerText = `${response}: ${count}`;
-          const percentage = (count / total_responses) * 100;
-          bar_elem.style.width = `${percentage}%`;
-          response_container.appendChild(bar_elem);
+        let responses_num = 0;
+        const count_by_option = new Map();
+        for (const [
+          user_id,
+          choosen_option,
+        ] of question_responses.response_by_user.entries()) {
+          if (!valid_options.includes(choosen_option)) {
+            continue;
+          }
+          responses_num += 1;
+          count_by_option.set(
+            choosen_option,
+            (count_by_option.get(choosen_option) || 0) + 1
+          );
         }
-      }, 1000);
 
-      function update_qr_code() {
-        const elem = document.getElementById("qrcode");
-        elem.innerHTML = "";
+        for (const option of valid_options) {
+          const count = count_by_option.get(option) || 0;
+          const option_elem = document.createElement("div");
+          result_elem.appendChild(option_elem);
+          option_elem.innerText = `${option}: ${count}`;
+        }
+      }
+
+      function update_poll_qr_codes() {
+        const image = get_qr_code_image_data(
+          `${server_url}/${session_id}`,
+          qrcode_size
+        );
+        for (const qr_code_elem of document.getElementsByClassName(
+          "poll-qr-code"
+        )) {
+          qr_code_elem.innerHTML = "";
+          const canvas_elem = document.createElement("canvas");
+          canvas_elem.width = qrcode_size;
+          canvas_elem.height = qrcode_size;
+          const ctx = canvas_elem.getContext("2d");
+          ctx.putImageData(image, 0, 0);
+          qr_code_elem.appendChild(canvas_elem);
+        }
+      }
+
+      function get_qr_code_image_data(text, size) {
+        const elem = document.createElement("div");
         new QRCode(elem, {
-          text: `${server_url}/${session_id}`,
-          width: 128,
-          height: 128,
+          text: text,
+          width: size,
+          height: size,
           colorDark: "#000000",
           colorLight: "#ffffff",
           correctionLevel: QRCode.CorrectLevel.L,
         });
+        const canvas_elem = elem.children[0];
+        const ctx = canvas_elem.getContext("2d");
+        const image_data = ctx.getImageData(
+          0,
+          0,
+          canvas_elem.width,
+          canvas_elem.height
+        );
+        elem.remove();
+        return image_data;
       }
 
-      update_qr_code();
+      function load_responses_from_local_storage() {
+        let all_responses = localStorage.getItem("all_responses");
+        if (!all_responses) {
+          return;
+        }
+        all_responses = JSON.parse(all_responses);
+        for (const response of all_responses) {
+          add_response_to_global_map(response);
+        }
+      }
+
+      function store_responses_in_local_storage() {
+        responses = [];
+        for (const [
+          question_id,
+          { response_by_user },
+        ] of responses_by_question_id.entries()) {
+          for (const [user_id, response_data] of response_by_user.entries()) {
+            responses.push({ question_id, user_id, data: response_data });
+          }
+        }
+        localStorage.setItem("all_responses", JSON.stringify(responses));
+      }
+
+      function reset_responses() {
+        responses_by_question_id = new Map();
+        store_responses_in_local_storage();
+      }
+
+      function add_response_to_global_map(response) {
+        const question_id = response.question_id;
+        const user_id = response.user_id;
+        const response_data = response.data;
+
+        if (!question_id || !user_id || !response_data) {
+          return;
+        }
+
+        if (!responses_by_question_id.has(question_id)) {
+          responses_by_question_id.set(question_id, {
+            response_by_user: new Map(),
+          });
+        }
+
+        const question_responses = responses_by_question_id.get(question_id);
+        question_responses.response_by_user.set(user_id, response_data);
+      }
+
+      setTimeout(main, 0);
     </script>
   </body>
 </html>
