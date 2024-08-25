@@ -83,7 +83,8 @@
     </script>
 
     <script>
-      let server_url = "https://poll.jlucke.com";
+      // let server_url = "https://poll.jlucke.com";
+      let server_url = "http://192.168.0.15:8080";
       let session_id = localStorage.getItem("session_id") || "test";
       const qrcode_size = 128;
 
@@ -98,6 +99,17 @@
           await build_single_choice_poll(poll_container);
         }
         update_poll_qr_codes();
+
+        Reveal.on("slidechanged", async function (event) {
+          const current_slide = event.currentSlide;
+          const poll_container = current_slide.querySelector(
+            ".poll-single-choice"
+          );
+          if (!poll_container) {
+            return;
+          }
+          await on_start_single_choice_poll(poll_container);
+        });
       }
 
       async function build_single_choice_poll(poll_container) {
@@ -114,9 +126,20 @@
         const result_elem = document.createElement("div");
         poll_container.appendChild(result_elem);
 
+        poll_container.poll_options = options;
+        poll_container.result_elem = result_elem;
+
         const qr_elem = document.createElement("div");
         qr_elem.classList.add("poll-qr-code");
         meta_elem.appendChild(qr_elem);
+
+        const poll_link = get_poll_link();
+
+        const poll_link_elem = document.createElement("a");
+        meta_elem.appendChild(poll_link_elem);
+        poll_link_elem.href = poll_link;
+        poll_link_elem.innerText = poll_link;
+        poll_link_elem.target = "_blank";
 
         const settings_elem = document.createElement("button");
         settings_elem.innerText = "Settings";
@@ -126,7 +149,7 @@
         const start_elem = document.createElement("button");
         start_elem.innerHTML = "Start";
         start_elem.addEventListener("click", async () => {
-          await on_start_single_choice_poll(question_id, options, result_elem);
+          await on_start_single_choice_poll(poll_container);
         });
         meta_elem.appendChild(start_elem);
       }
@@ -164,11 +187,10 @@
         });
       }
 
-      async function on_start_single_choice_poll(
-        question_id,
-        options,
-        result_elem
-      ) {
+      async function on_start_single_choice_poll(poll_container) {
+        const question_id = poll_container.id;
+        const options = poll_container.poll_options;
+        const result_elem = poll_container.result_elem;
         let template = await fetch("multiple_choice.template.html");
         template = await template.text();
         template = template.replace("QUESTION_ID", question_id);
@@ -191,8 +213,8 @@
         let responses = await fetch(`${server_url}/${session_id}/responses`);
         responses = await responses.json();
 
-        for (const response of responses) {
-          const { question_id, user_id, data } = JSON.parse(response);
+        for (const [user_id, response] of Object.entries(responses)) {
+          const { question_id, data } = JSON.parse(response);
           if (!question_id || !user_id || !data) {
             continue;
           }
@@ -234,10 +256,7 @@
       }
 
       function update_poll_qr_codes() {
-        const image = get_qr_code_image_data(
-          `${server_url}/${session_id}`,
-          qrcode_size
-        );
+        const image = get_qr_code_image_data(get_poll_link(), qrcode_size);
         for (const qr_code_elem of document.getElementsByClassName(
           "poll-qr-code"
         )) {
@@ -249,6 +268,10 @@
           ctx.putImageData(image, 0, 0);
           qr_code_elem.appendChild(canvas_elem);
         }
+      }
+
+      function get_poll_link() {
+        return `${server_url}/${session_id}`;
       }
 
       function get_qr_code_image_data(text, size) {
