@@ -45,6 +45,26 @@
       .poll-qr-code > canvas {
         display: block;
       }
+
+      .join-poll {
+        background-color: #3f3f3f;
+        display: block;
+        width: fit-content;
+        padding: 0.4em;
+        border-radius: 0.4em;
+        font-size: 50%;
+        cursor: pointer;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .join-poll:hover {
+        background-color: #2b2b2b;
+      }
+
+      .join-poll > code {
+        color: rgb(126, 202, 253);
+      }
     </style>
   </head>
   <body>
@@ -86,7 +106,7 @@
       // let server_url = "https://poll.jlucke.com";
       let server_url = "http://192.168.0.15:8080";
       let session_id = localStorage.getItem("session_id") || "test";
-      const qrcode_size = 128;
+      const qrcode_size = 256;
       const poll_interval_ms = 300;
 
       let responses_by_question_id = new Map();
@@ -122,38 +142,19 @@
         const question_id = poll_container.id;
 
         poll_container.innerHTML = "";
-        const meta_elem = document.createElement("div");
-        poll_container.appendChild(meta_elem);
-
-        const result_elem = document.createElement("div");
-        poll_container.appendChild(result_elem);
-
         poll_container.poll_options = options;
-        poll_container.result_elem = result_elem;
-
-        const qr_elem = document.createElement("div");
-        qr_elem.classList.add("poll-qr-code");
-        meta_elem.appendChild(qr_elem);
 
         const poll_link = get_poll_link();
 
-        const poll_link_elem = document.createElement("a");
-        meta_elem.appendChild(poll_link_elem);
-        poll_link_elem.href = poll_link;
-        poll_link_elem.innerText = poll_link;
-        poll_link_elem.target = "_blank";
+        const result_elem = document.createElement("div");
+        poll_container.appendChild(result_elem);
+        poll_container.result_elem = result_elem;
 
-        const settings_elem = document.createElement("button");
-        settings_elem.innerText = "Settings";
-        settings_elem.addEventListener("click", open_settings);
-        meta_elem.appendChild(settings_elem);
-
-        const start_elem = document.createElement("button");
-        start_elem.innerHTML = "Start";
-        start_elem.addEventListener("click", async () => {
-          await on_start_single_choice_poll(poll_container);
-        });
-        meta_elem.appendChild(start_elem);
+        const join_elem = document.createElement("div");
+        poll_container.appendChild(join_elem);
+        join_elem.classList.add("join-poll");
+        join_elem.innerHTML = `Join at <code>${poll_link}</code>`;
+        join_elem.addEventListener("click", open_settings);
       }
 
       function set_new_session_id(new_session_id) {
@@ -184,8 +185,16 @@
         reset_responses_elem.innerText = "Reset Responses";
         reset_responses_elem.addEventListener("click", reset_responses);
 
+        const qr_elem = document.createElement("div");
+        settings_elem.appendChild(qr_elem);
+        qr_elem.classList.add("poll-qr-code");
+        const image = get_qr_code_image_data(get_poll_link(), qrcode_size);
+        update_qr_code_elem(qr_elem, image);
+
         Swal.fire({
           html: settings_elem,
+          background: "rgb(59 59 59)",
+          confirmButtonText: "Close",
         });
       }
 
@@ -291,14 +300,18 @@
         for (const qr_code_elem of document.getElementsByClassName(
           "poll-qr-code"
         )) {
-          qr_code_elem.innerHTML = "";
-          const canvas_elem = document.createElement("canvas");
-          canvas_elem.width = qrcode_size;
-          canvas_elem.height = qrcode_size;
-          const ctx = canvas_elem.getContext("2d");
-          ctx.putImageData(image, 0, 0);
-          qr_code_elem.appendChild(canvas_elem);
+          update_qr_code_elem(qr_code_elem, image);
         }
+      }
+
+      function update_qr_code_elem(qr_code_elem, image) {
+        qr_code_elem.innerHTML = "";
+        const canvas_elem = document.createElement("canvas");
+        canvas_elem.width = qrcode_size;
+        canvas_elem.height = qrcode_size;
+        const ctx = canvas_elem.getContext("2d");
+        ctx.putImageData(image, 0, 0);
+        qr_code_elem.appendChild(canvas_elem);
       }
 
       function get_poll_link() {
