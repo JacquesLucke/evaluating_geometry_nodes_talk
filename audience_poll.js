@@ -36,7 +36,8 @@ function build_single_choice_poll(poll_container) {
 
   poll_container.innerHTML = "";
   poll_container.poll_options = options;
-  poll_container.results_revealed = false;
+  poll_container.results_revealed =
+    !poll_container.hasAttribute("data-hide-result");
 
   const poll_link = get_poll_link();
 
