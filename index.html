@@ -87,6 +87,7 @@
       let server_url = "http://192.168.0.15:8080";
       let session_id = localStorage.getItem("session_id") || "test";
       const qrcode_size = 128;
+      const poll_interval_ms = 300;
 
       let responses_by_question_id = new Map();
 
@@ -101,6 +102,7 @@
         update_poll_qr_codes();
 
         Reveal.on("slidechanged", async function (event) {
+          stop_getting_poll_results();
           const current_slide = event.currentSlide;
           const poll_container = current_slide.querySelector(
             ".poll-single-choice"
@@ -199,31 +201,60 @@
           JSON.stringify(options)
         );
         update_poll_page(template);
-
-        setInterval(async () => {
-          handle_single_choice_responses(question_id, options, result_elem);
-        }, 500);
+        start_getting_poll_results();
       }
 
-      async function handle_single_choice_responses(
-        question_id,
-        valid_options,
-        result_elem
-      ) {
-        let responses = await fetch(`${server_url}/${session_id}/responses`);
+      function start_getting_poll_results() {
+        if (poll_interval_task) {
+          return;
+        }
+        poll_interval_task = setInterval(async () => {
+          await retrieve_new_poll_responses();
+          update_poll_results_on_current_slide();
+        }, poll_interval_ms);
+      }
+
+      function stop_getting_poll_results() {
+        clearInterval(poll_interval_task);
+        poll_interval_task = null;
+      }
+
+      function update_poll_results_on_current_slide() {
+        const current_slide = Reveal.getCurrentSlide();
+        const poll_container = current_slide.querySelector(
+          ".poll-single-choice"
+        );
+        if (!poll_container) {
+          return;
+        }
+        update_poll_result(poll_container);
+      }
+
+      async function retrieve_new_poll_responses() {
+        let responses = await fetch(`${get_poll_link()}/responses`);
         responses = await responses.json();
 
         for (const [user_id, response] of Object.entries(responses)) {
           const { question_id, data } = JSON.parse(response);
-          if (!question_id || !user_id || !data) {
+          const poll_container = document.getElementById(question_id);
+          if (!poll_container) {
             continue;
           }
-          if (!valid_options.includes(data)) {
+          if (!data) {
+            continue;
+          }
+          if (!poll_container.poll_options.includes(data)) {
             continue;
           }
           add_response_to_global_map({ question_id, user_id, data });
         }
         store_responses_in_local_storage();
+      }
+
+      async function update_poll_result(poll_container) {
+        const result_elem = poll_container.result_elem;
+        const question_id = poll_container.id;
+        const valid_options = poll_container.poll_options;
 
         result_elem.innerHTML = "";
         const question_responses = responses_by_question_id.get(question_id);
@@ -345,6 +376,8 @@
       }
 
       setTimeout(main, 0);
+
+      let poll_interval_task = null;
     </script>
   </body>
 </html>
