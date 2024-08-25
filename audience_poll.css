@@ -1,0 +1,40 @@
+#response > div {
+  background-color: aqua;
+  text-align: left;
+  padding-left: 1em;
+  color: black;
+}
+
+.poll-qr-code {
+  padding: 20px;
+  border: 0;
+  margin: 0;
+  background-color: #ccc;
+  width: fit-content;
+  height: fit-content;
+  border-radius: 5px;
+}
+
+.poll-qr-code > canvas {
+  display: block;
+}
+
+.join-poll {
+  background-color: #3f3f3f;
+  display: block;
+  width: fit-content;
+  padding: 0.4em;
+  border-radius: 0.4em;
+  font-size: 50%;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.join-poll:hover {
+  background-color: #2b2b2b;
+}
+
+.join-poll > code {
+  color: rgb(126, 202, 253);
+}
