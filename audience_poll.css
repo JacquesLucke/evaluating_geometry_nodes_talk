@@ -7,8 +7,9 @@
 
 .poll-qr-code {
   padding: 20px;
-  border: 0;
-  margin: 0;
+  margin-top: 1em;
+  margin-left: auto;
+  margin-right: auto;
   background-color: #ccc;
   width: fit-content;
   height: fit-content;
@@ -17,6 +18,12 @@
 
 .poll-qr-code > canvas {
   display: block;
+}
+
+.settings-poll-link {
+  color: white;
+  font-family: monospace;
+  text-decoration: none;
 }
 
 .join-poll {
@@ -40,7 +47,7 @@
 }
 
 .poll-bar {
-  background-color: #445599;
+  background-color: #464646;
   min-width: 2em;
   text-align: left;
   padding-left: 0.5em;
@@ -48,4 +55,18 @@
   white-space: nowrap;
   margin: 0.3em;
   border-radius: 0.3em;
+  text-shadow: black 0 0 2px;
+}
+
+.options-container {
+  display: flex;
+}
+
+.option-elem {
+  border-radius: 0.3em;
+  width: fit-content;
+  margin-left: 1em;
+  padding: 0.3em;
+  font-size: 70%;
+  text-shadow: black 0 0 2px;
 }

@@ -1,6 +1,7 @@
 // let server_url = "https://poll.jlucke.com";
 let server_url = "http://192.168.0.15:8080";
 let session_id = localStorage.getItem("session_id") || "test";
+let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 300;
 
@@ -32,14 +33,30 @@ function build_single_choice_poll(poll_container) {
   for (const option_elem of poll_container.children) {
     options.push(option_elem.innerText);
   }
-  const question_id = poll_container.id;
+
+  const hide_results = poll_container.hasAttribute("data-hide-result");
 
   poll_container.innerHTML = "";
   poll_container.poll_options = options;
-  poll_container.results_revealed =
-    !poll_container.hasAttribute("data-hide-result");
+  poll_container.results_revealed = !hide_results;
 
   const poll_link = get_poll_link();
+
+  if (hide_results) {
+    const options_container = document.createElement("div");
+    poll_container.appendChild(options_container);
+    poll_container.options_container = options_container;
+    options_container.classList.add("options-container");
+
+    for (const option_i in options) {
+      const option = options[option_i];
+      const option_elem = document.createElement("div");
+      options_container.appendChild(option_elem);
+      option_elem.classList.add("option-elem");
+      option_elem.innerText = option;
+      option_elem.style.backgroundColor = option_colors[option_i];
+    }
+  }
 
   const result_elem = document.createElement("div");
   poll_container.appendChild(result_elem);
@@ -88,6 +105,13 @@ function open_settings() {
   const image = get_qr_code_image_data(get_poll_link(), qrcode_size);
   update_qr_code_elem(qr_elem, image);
 
+  const link_elem = document.createElement("a");
+  settings_elem.appendChild(link_elem);
+  link_elem.classList.add("settings-poll-link");
+  link_elem.href = get_poll_link();
+  link_elem.target = "_blank";
+  link_elem.innerText = get_poll_link();
+
   Swal.fire({
     html: settings_elem,
     background: "rgb(59 59 59)",
@@ -105,6 +129,10 @@ async function on_start_single_choice_poll(poll_container) {
   template = template.replace(
     '"MULTIPLE_CHOICE_OPTIONS"',
     JSON.stringify(options)
+  );
+  template = template.replace(
+    '"MULTIPLE_CHOICE_COLORS"',
+    JSON.stringify(option_colors)
   );
   update_poll_page(template);
   start_getting_poll_results();
@@ -192,6 +220,7 @@ async function update_poll_result(poll_container) {
   );
 
   for (const option of sorted_options) {
+    const option_i = valid_options.indexOf(option);
     const count = count_by_option.get(option);
     const option_elem = document.createElement("div");
     option_elem.classList.add("poll-bar");
@@ -202,12 +231,14 @@ async function update_poll_result(poll_container) {
 
     if (poll_container.results_revealed) {
       option_elem.innerText = `${option}: ${count}`;
+      option_elem.style.backgroundColor = option_colors[option_i];
     } else {
       option_elem.innerText = `${count}`;
     }
 
     option_elem.addEventListener("click", async () => {
       poll_container.results_revealed = true;
+      poll_container.options_container.style.display = "None";
       await update_poll_result(poll_container);
     });
   }
