@@ -1,5 +1,5 @@
-// let server_url = "https://poll.jlucke.com";
-let server_url = "http://192.168.0.15:8080";
+let server_url = "https://poll.jlucke.com";
+// let server_url = "http://192.168.0.15:8080";
 let session_id = localStorage.getItem("session_id") || "test";
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
