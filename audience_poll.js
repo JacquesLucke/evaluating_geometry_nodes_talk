@@ -224,9 +224,13 @@ async function update_poll_result(poll_container) {
   }
 
   const sorted_options = [...valid_options];
-  sorted_options.sort(
-    (a, b) => count_by_option.get(b) - count_by_option.get(a)
-  );
+  if (poll_container.hasAttribute("data-hide-result")) {
+    // Sort by count in case the results should be hidden initially.
+    // Otherwise, it's obvious which bar corresponds to which option.
+    sorted_options.sort(
+      (a, b) => count_by_option.get(b) - count_by_option.get(a)
+    );
+  }
 
   for (const option of sorted_options) {
     const option_i = valid_options.indexOf(option);

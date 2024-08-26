@@ -56,6 +56,7 @@
   margin: 0.3em;
   border-radius: 0.3em;
   text-shadow: black 0 0 2px;
+  cursor: pointer;
 }
 
 .options-container {
