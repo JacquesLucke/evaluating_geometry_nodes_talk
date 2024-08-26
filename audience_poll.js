@@ -123,7 +123,7 @@ async function on_start_single_choice_poll(poll_container) {
   const question_id = poll_container.id;
   const options = poll_container.poll_options;
   const result_elem = poll_container.result_elem;
-  let template = await fetch("multiple_choice.template.html");
+  let template = await fetch("poll.template.html");
   template = await template.text();
   template = template.replace("QUESTION_ID", question_id);
   template = template.replace(
@@ -314,6 +314,7 @@ function store_responses_in_local_storage() {
 function reset_responses() {
   responses_by_question_id = new Map();
   store_responses_in_local_storage();
+  update_poll_page("No active poll");
 }
 
 function add_response_to_global_map(response) {
