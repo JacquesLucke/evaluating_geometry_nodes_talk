@@ -136,21 +136,27 @@ async function on_start_single_choice_poll(poll_container) {
   );
   update_poll_page(template);
   start_getting_poll_results();
+  poll_results_loop();
+}
+
+function poll_results_loop() {
+  const handler = async () => {
+    if (do_poll_results.active) {
+      await retrieve_new_poll_responses();
+      update_poll_results_on_current_slide();
+    }
+    setTimeout(handler, poll_interval_ms);
+  };
+
+  handler();
 }
 
 function start_getting_poll_results() {
-  if (poll_interval_task) {
-    return;
-  }
-  poll_interval_task = setInterval(async () => {
-    await retrieve_new_poll_responses();
-    update_poll_results_on_current_slide();
-  }, poll_interval_ms);
+  do_poll_results.active = true;
 }
 
 function stop_getting_poll_results() {
-  clearInterval(poll_interval_task);
-  poll_interval_task = null;
+  do_poll_results.active = false;
 }
 
 function update_poll_results_on_current_slide() {
@@ -164,6 +170,9 @@ function update_poll_results_on_current_slide() {
 
 async function retrieve_new_poll_responses() {
   let responses = await fetch(`${get_poll_link()}/responses`);
+  if (!responses.ok) {
+    return;
+  }
   responses = await responses.json();
 
   for (const [user_id, response] of Object.entries(responses)) {
@@ -340,4 +349,4 @@ function add_response_to_global_map(response) {
 
 main();
 
-let poll_interval_task = null;
+let do_poll_results = { active: false };
