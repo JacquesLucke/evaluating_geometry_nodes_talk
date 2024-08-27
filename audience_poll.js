@@ -78,7 +78,7 @@ function set_new_session_id(new_session_id) {
 }
 
 function update_poll_page(page_str) {
-  fetch(`${server_url}/${session_id}/set_page`, {
+  fetch(`${get_poll_link()}/set_page`, {
     method: "POST",
     body: page_str,
   });
@@ -275,7 +275,7 @@ function update_qr_code_elem(qr_code_elem, image) {
 }
 
 function get_poll_link() {
-  return `${server_url}/${session_id}`;
+  return `${server_url}/s/${session_id}`;
 }
 
 function get_qr_code_image_data(text, size) {
@@ -325,7 +325,7 @@ function store_responses_in_local_storage() {
 }
 
 async function reset_responses() {
-  await fetch(`${server_url}/${session_id}/reset_responses`, {
+  await fetch(`${get_poll_link()}/reset_responses`, {
     method: "POST",
   });
   responses_by_question_id = new Map();
