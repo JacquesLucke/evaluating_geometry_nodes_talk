@@ -13,7 +13,6 @@ function main() {
   all_polls = initialize_poll_instances();
   for (const poll of all_polls) {
     poll.initialize();
-    poll.update_join_link(get_poll_link());
     poll.update_with_responses(new Map());
   }
 
@@ -70,13 +69,8 @@ class SingleChoicePoll {
     this.result_elem = document.createElement("div");
     this.container.appendChild(this.result_elem);
 
-    const join_elem = document.createElement("div");
+    const join_elem = create_join_elem();
     this.container.appendChild(join_elem);
-    this.link_elem = document.createElement("code");
-    join_elem.classList.add("join-poll");
-    join_elem.appendChild(document.createTextNode("Join at "));
-    join_elem.appendChild(this.link_elem);
-    join_elem.addEventListener("click", open_settings);
   }
 
   update_with_responses(response_by_user) {
@@ -134,10 +128,6 @@ class SingleChoicePoll {
     }
   }
 
-  update_join_link(new_link) {
-    this.link_elem.innerText = new_link;
-  }
-
   async get_poll_page() {
     let page = await fetch("poll.template.html");
     page = await page.text();
@@ -152,6 +142,18 @@ class SingleChoicePoll {
     );
     return page;
   }
+}
+
+function create_join_elem() {
+  const join_elem = document.createElement("div");
+  const link_elem = document.createElement("code");
+  link_elem.innerText = get_poll_link();
+  link_elem.classList.add("join-link-elem");
+  join_elem.classList.add("join-poll");
+  join_elem.appendChild(document.createTextNode("Join at "));
+  join_elem.appendChild(link_elem);
+  join_elem.addEventListener("click", open_settings);
+  return join_elem;
 }
 
 function initialize_poll_instances() {
@@ -194,8 +196,12 @@ function get_poll_by_id(id) {
 function set_new_session_id(new_session_id) {
   session_id = new_session_id;
   localStorage.setItem("session_id", session_id);
-  for (const poll of all_polls) {
-    poll.update_join_link(get_poll_link());
+  const new_link = get_poll_link();
+  for (const link_elem of document.getElementsByClassName("join-link-elem")) {
+    link_elem.innerText = new_link;
+    if (link_elem.tagName === "a") {
+      link_elem.href = new_link;
+    }
   }
   update_poll_qr_codes();
   const poll = find_poll_on_current_slide();
@@ -228,6 +234,7 @@ function open_settings() {
   const link_elem = document.createElement("a");
   settings_elem.appendChild(link_elem);
   link_elem.classList.add("settings-poll-link");
+  link_elem.classList.add("join-link-elem");
   link_elem.href = get_poll_link();
   link_elem.target = "_blank";
   link_elem.innerText = get_poll_link();
