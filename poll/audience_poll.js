@@ -13,7 +13,7 @@ function main() {
   all_polls = initialize_poll_instances();
   for (const poll of all_polls) {
     poll.initialize();
-    poll.update_with_responses(new Map());
+    update_poll_result(poll);
   }
 
   update_poll_qr_codes();

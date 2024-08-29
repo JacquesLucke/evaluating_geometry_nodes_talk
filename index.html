@@ -25,13 +25,24 @@
     ></script>
 
     <link rel="stylesheet" href="poll/audience_poll.css" />
+
+    <style>
+      .reveal h1,
+      .reveal h2,
+      .reveal h3,
+      .reveal h4,
+      .reveal h5,
+      .reveal h6 {
+        text-transform: none;
+      }
+    </style>
   </head>
   <body>
     <div class="reveal">
       <div class="slides">
-        <section>Evaluating Geometry Nodes</section>
+        <section><h2>Evaluating Geometry Nodes</h2></section>
         <section>
-          Join the Interactive Part
+          Join the interactive part!
           <div
             style="
               display: flex;
@@ -49,51 +60,34 @@
         <section>
           What's your background?
           <div class="poll-slide" id="what-is-your-background-poll">
-            <option>Visual Art</option>
+            <option>Artistic</option>
             <option>Both</option>
-            <option>Developer</option>
+            <option>Technical</option>
           </div>
         </section>
         <section>
-          What is better?
-          <div
-            class="poll-single-choice"
-            id="what-is-better-poll"
-            data-hide-result
-          >
-            <option>Depth-First</option>
-            <option>Breath-First</option>
-          </div>
-        </section>
-        <section>
-          What do you like more?
-          <div class="poll-single-choice" id="what-do-you-like-more-poll">
-            <option>Pizza</option>
-            <option>Pasta</option>
-            <option>Noodles</option>
-          </div>
-        </section>
-        <section>Multi-Function</section>
-        <section>
-          IndexMask
-          <pre><code data-line-numbers="3-5|8-10|13-15" data-trim>
-            if (!MAIN_VERSION_FILE_ATLEAST(bmain, 403, 21)) {
-              LISTBASE_FOREACH (bScreen *, screen, &bmain->screens) {
-                LISTBASE_FOREACH (ScrArea *, area, &screen->areabase) {
-                  LISTBASE_FOREACH (SpaceLink *, sl, &area->spacedata) {
-                    if (sl->spacetype == SPACE_CLIP) {
-                      ARegion *region = BKE_area_find_region_type(area, RGN_TYPE_WINDOW);
-                      if (region != nullptr) {
-                        View2D *v2d = &region->v2d;
-                        v2d->flag &= ~V2D_VIEWSYNC_SCREEN_TIME;
-                      }
-                    }
-                  }
-                }
-              }
+          Where in the main loop are we?
+          <pre><code data-trim data-line-numbers="4">
+            while (true) {
+              wm_window_events_process(C);
+              wm_event_do_handlers(C);
+              wm_event_do_notifiers(C);
+              wm_draw_update(C);
             }
           </code></pre>
         </section>
+        <section>
+          <h2>The Dependency Graph!?</h2>
+          <div class="poll-slide" id="how-will-do-you-know-the-depsgraph">
+            <option>What is it?</option>
+            <option>I kind of know it.</option>
+            <option>I can explain it!</option>
+          </div>
+        </section>
+        <section><h2>Depsgraph Structure</h2></section>
+        <section><h2>Depsgraph Evaluation</h2></section>
+        <section><h2>Limitations</h2></section>
+        <section><h2>Geometry Nodes</h2></section>
       </div>
     </div>
 
