@@ -10,9 +10,15 @@ let responses_by_question_id = new Map();
 function main() {
   load_responses_from_local_storage();
 
-  all_polls = initialize_polls();
-  start_poll_results_loop();
+  all_polls = initialize_poll_instances();
+  for (const poll of all_polls) {
+    poll.initialize();
+    poll.update_join_link(get_poll_link());
+    poll.update_with_responses(new Map());
+  }
+
   update_poll_qr_codes();
+  start_poll_results_loop();
 
   Reveal.on("slidechanged", async function (event) {
     stop_getting_poll_results();
@@ -25,17 +31,136 @@ function main() {
   });
 }
 
-function initialize_polls() {
-  const polls = {
-    single_choice: [],
-  };
+class SingleChoicePoll {
+  constructor(poll_container) {
+    this.container = poll_container;
+    this.id = this.container.id;
 
+    this.options = [];
+    for (const option_elem of this.container.children) {
+      this.options.push(option_elem.innerText);
+    }
+
+    this.hide_results_initially =
+      this.container.hasAttribute("data-hide-result");
+    this.results_revealed = !this.hide_results_initially;
+  }
+
+  initialize() {
+    this.container.innerHTML = "";
+
+    const poll_link = get_poll_link();
+
+    if (this.hide_results_initially) {
+      this.options_container = document.createElement("div");
+      this.container.appendChild(this.options_container);
+
+      this.options_container.classList.add("options-container");
+
+      for (const option_i in this.options) {
+        const option = this.options[option_i];
+        const option_elem = document.createElement("div");
+        this.options_container.appendChild(option_elem);
+        option_elem.classList.add("option-elem");
+        option_elem.innerText = option;
+        option_elem.style.backgroundColor = option_colors[option_i];
+      }
+    }
+
+    this.result_elem = document.createElement("div");
+    this.container.appendChild(this.result_elem);
+
+    const join_elem = document.createElement("div");
+    this.container.appendChild(join_elem);
+    this.link_elem = document.createElement("code");
+    join_elem.classList.add("join-poll");
+    join_elem.appendChild(document.createTextNode("Join at "));
+    join_elem.appendChild(this.link_elem);
+    join_elem.addEventListener("click", open_settings);
+  }
+
+  update_with_responses(response_by_user) {
+    // Clear old results.
+    this.result_elem.innerHTML = "";
+
+    const count_by_option = new Map();
+    for (const option of this.options) {
+      count_by_option.set(option, 0);
+    }
+
+    let responses_num = 0;
+    for (const choosen_option of response_by_user.values()) {
+      if (!this.options.includes(choosen_option)) {
+        continue;
+      }
+      responses_num += 1;
+      count_by_option.set(
+        choosen_option,
+        count_by_option.get(choosen_option) + 1
+      );
+    }
+
+    const sorted_options = [...this.options];
+    if (this.hide_results_initially) {
+      // Sort by count in case the results should be hidden initially.
+      // Otherwise, it's obvious which bar corresponds to which option.
+      sorted_options.sort(
+        (a, b) => count_by_option.get(b) - count_by_option.get(a)
+      );
+    }
+
+    for (const option of sorted_options) {
+      const option_i = this.options.indexOf(option);
+      const count = count_by_option.get(option);
+      const option_elem = document.createElement("div");
+      option_elem.classList.add("poll-bar");
+      this.result_elem.appendChild(option_elem);
+
+      const percentage = (count / Math.max(1, responses_num)) * 100;
+      option_elem.style.width = `${percentage * 0.9}%`;
+
+      if (this.results_revealed) {
+        option_elem.innerText = `${option}: ${count}`;
+        option_elem.style.backgroundColor = option_colors[option_i];
+      } else {
+        option_elem.innerText = `${count}`;
+      }
+
+      option_elem.addEventListener("click", async () => {
+        this.results_revealed = true;
+        this.options_container.style.display = "None";
+        this.update_with_responses(response_by_user);
+      });
+    }
+  }
+
+  update_join_link(new_link) {
+    this.link_elem.innerText = new_link;
+  }
+
+  async get_poll_page() {
+    let page = await fetch("poll.template.html");
+    page = await page.text();
+    page = page.replace("QUESTION_ID", this.id);
+    page = page.replace(
+      '"MULTIPLE_CHOICE_OPTIONS"',
+      JSON.stringify(this.options)
+    );
+    page = page.replace(
+      '"MULTIPLE_CHOICE_COLORS"',
+      JSON.stringify(option_colors)
+    );
+    return page;
+  }
+}
+
+function initialize_poll_instances() {
+  const polls = [];
   for (const poll_container of document.getElementsByClassName(
     "poll-single-choice"
   )) {
-    polls.single_choice.push(initialize_single_choice_poll(poll_container));
+    polls.push(new SingleChoicePoll(poll_container));
   }
-
   return polls;
 }
 
@@ -49,7 +174,7 @@ function find_poll_on_slide(slide) {
 }
 
 function get_poll_by_container(container) {
-  for (const poll of all_polls.single_choice) {
+  for (const poll of all_polls) {
     if (poll.container === container) {
       return poll;
     }
@@ -58,7 +183,7 @@ function get_poll_by_container(container) {
 }
 
 function get_poll_by_id(id) {
-  for (const poll of all_polls.single_choice) {
+  for (const poll of all_polls) {
     if (poll.id === id) {
       return poll;
     }
@@ -66,68 +191,13 @@ function get_poll_by_id(id) {
   return null;
 }
 
-function initialize_single_choice_poll(poll_container) {
-  const poll = {
-    type: "single-choice",
-    id: poll_container.id,
-    container: poll_container,
-  };
-
-  const options = [];
-  for (const option_elem of poll_container.children) {
-    options.push(option_elem.innerText);
-  }
-
-  poll_container.innerHTML = "";
-
-  poll.options = options;
-  poll.hide_results_initially = poll_container.hasAttribute("data-hide-result");
-  poll.results_revealed = !poll.hide_results_initially;
-
-  const poll_link = get_poll_link();
-
-  if (poll.hide_results_initially) {
-    const options_container = document.createElement("div");
-    poll_container.appendChild(options_container);
-    poll.options_container = options_container;
-    options_container.classList.add("options-container");
-
-    for (const option_i in options) {
-      const option = options[option_i];
-      const option_elem = document.createElement("div");
-      options_container.appendChild(option_elem);
-      option_elem.classList.add("option-elem");
-      option_elem.innerText = option;
-      option_elem.style.backgroundColor = option_colors[option_i];
-    }
-  }
-
-  const result_elem = document.createElement("div");
-  poll_container.appendChild(result_elem);
-  poll.result_elem = result_elem;
-
-  const join_elem = document.createElement("div");
-  poll_container.appendChild(join_elem);
-  join_elem.classList.add("join-poll");
-  join_elem.innerHTML = `Join at <code>${poll_link}</code>`;
-  join_elem.addEventListener("click", open_settings);
-
-  update_poll_result(poll);
-
-  return poll;
-}
-
 function set_new_session_id(new_session_id) {
   session_id = new_session_id;
   localStorage.setItem("session_id", session_id);
+  for (const poll of all_polls) {
+    poll.update_join_link(get_poll_link());
+  }
   update_poll_qr_codes();
-}
-
-function update_poll_page(page_str) {
-  fetch(`${get_poll_link()}/set_page`, {
-    method: "POST",
-    body: page_str,
-  });
 }
 
 function open_settings() {
@@ -166,28 +236,13 @@ function open_settings() {
 }
 
 async function start_poll(poll) {
-  if (poll.type == "single-choice") {
-    start_single_choice_poll(poll);
-  }
+  const page = await poll.get_poll_page();
+  await fetch(`${get_poll_link()}/set_page`, {
+    method: "POST",
+    body: page,
+  });
+
   start_getting_poll_results();
-}
-
-async function start_single_choice_poll(poll) {
-  const question_id = poll.id;
-  const options = poll.options;
-
-  let template = await fetch("poll.template.html");
-  template = await template.text();
-  template = template.replace("QUESTION_ID", question_id);
-  template = template.replace(
-    '"MULTIPLE_CHOICE_OPTIONS"',
-    JSON.stringify(options)
-  );
-  template = template.replace(
-    '"MULTIPLE_CHOICE_COLORS"',
-    JSON.stringify(option_colors)
-  );
-  update_poll_page(template);
 }
 
 function start_poll_results_loop() {
@@ -244,68 +299,11 @@ async function retrieve_new_poll_responses() {
 }
 
 async function update_poll_result(poll) {
-  const result_elem = poll.result_elem;
-  const question_id = poll.id;
-  const valid_options = poll.options;
-
-  // Clear old results.
-  result_elem.innerHTML = "";
-
-  let responses_num = 0;
-  const count_by_option = new Map();
-  for (const option of valid_options) {
-    count_by_option.set(option, 0);
-  }
-
-  let question_responses = responses_by_question_id.get(question_id);
-  if (question_responses) {
-    for (const [
-      user_id,
-      choosen_option,
-    ] of question_responses.response_by_user.entries()) {
-      if (!valid_options.includes(choosen_option)) {
-        continue;
-      }
-      responses_num += 1;
-      count_by_option.set(
-        choosen_option,
-        count_by_option.get(choosen_option) + 1
-      );
-    }
-  }
-
-  const sorted_options = [...valid_options];
-  if (poll.hide_results_initially) {
-    // Sort by count in case the results should be hidden initially.
-    // Otherwise, it's obvious which bar corresponds to which option.
-    sorted_options.sort(
-      (a, b) => count_by_option.get(b) - count_by_option.get(a)
-    );
-  }
-
-  for (const option of sorted_options) {
-    const option_i = valid_options.indexOf(option);
-    const count = count_by_option.get(option);
-    const option_elem = document.createElement("div");
-    option_elem.classList.add("poll-bar");
-    result_elem.appendChild(option_elem);
-
-    const percentage = (count / Math.max(1, responses_num)) * 100;
-    option_elem.style.width = `${percentage * 0.9}%`;
-
-    if (poll.results_revealed) {
-      option_elem.innerText = `${option}: ${count}`;
-      option_elem.style.backgroundColor = option_colors[option_i];
-    } else {
-      option_elem.innerText = `${count}`;
-    }
-
-    option_elem.addEventListener("click", async () => {
-      poll.results_revealed = true;
-      poll.options_container.style.display = "None";
-      await update_poll_result(poll);
-    });
-  }
+  const question_responses = responses_by_question_id.get(poll.id);
+  const responses_by_user = question_responses
+    ? question_responses.response_by_user
+    : new Map();
+  poll.update_with_responses(responses_by_user);
 }
 
 function update_poll_qr_codes() {
