@@ -198,6 +198,10 @@ function set_new_session_id(new_session_id) {
     poll.update_join_link(get_poll_link());
   }
   update_poll_qr_codes();
+  const poll = find_poll_on_current_slide();
+  if (poll) {
+    start_poll(poll);
+  }
 }
 
 function open_settings() {
@@ -266,12 +270,16 @@ function stop_getting_poll_results() {
 }
 
 function update_poll_results_on_current_slide() {
-  const current_slide = Reveal.getCurrentSlide();
-  const poll = find_poll_on_slide(current_slide);
+  const poll = find_poll_on_current_slide();
   if (!poll) {
     return;
   }
   update_poll_result(poll);
+}
+
+function find_poll_on_current_slide() {
+  const current_slide = Reveal.getCurrentSlide();
+  return find_poll_on_slide(current_slide);
 }
 
 async function retrieve_new_poll_responses() {
