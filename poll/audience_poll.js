@@ -119,7 +119,7 @@ class SingleChoicePoll {
         option_elem.innerHTML = `${option_html}: ${count}`;
         option_elem.style.backgroundColor = option_colors[option_i];
       } else {
-        option_elem.innerHTML = `${option_html}`;
+        option_elem.innerHTML = `${count}`;
       }
 
       option_elem.addEventListener("click", async () => {
