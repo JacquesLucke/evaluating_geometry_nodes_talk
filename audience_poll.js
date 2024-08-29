@@ -175,6 +175,8 @@ class SlidePoll {
     this.result_elem.style.width = "100%";
     this.result_elem.style.height = "5em";
 
+    const responses = Array.from(response_by_user.values());
+
     const resolution = 300;
 
     const falloffs = [];
@@ -186,7 +188,7 @@ class SlidePoll {
     }
 
     let heights = Array(resolution).fill(0);
-    for (const value of response_by_user.values()) {
+    for (const value of responses) {
       const value_f = parseFloat(value) / 100;
       const center_index = Math.floor(value_f * resolution);
       if (center_index < heights.length) {
