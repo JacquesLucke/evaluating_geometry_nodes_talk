@@ -31,6 +31,8 @@ function main() {
 }
 
 class SingleChoicePoll {
+  static class_name = "poll-single-choice";
+
   constructor(poll_container) {
     this.container = poll_container;
     this.id = this.container.id;
@@ -48,15 +50,13 @@ class SingleChoicePoll {
   initialize() {
     this.container.innerHTML = "";
 
-    const poll_link = get_poll_link();
-
     if (this.hide_results_initially) {
       this.options_container = document.createElement("div");
       this.container.appendChild(this.options_container);
 
       this.options_container.classList.add("options-container");
 
-      for (const option_i in this.options) {
+      for (let option_i = 0; option_i < this.options.length; option_i++) {
         const option = this.options[option_i];
         const option_elem = document.createElement("div");
         this.options_container.appendChild(option_elem);
@@ -142,7 +142,116 @@ class SingleChoicePoll {
     );
     return page;
   }
+
+  is_valid_resonse(response) {
+    return this.options.includes(response);
+  }
 }
+
+class SlidePoll {
+  static class_name = "poll-slide";
+
+  constructor(poll_container) {
+    this.container = poll_container;
+    this.id = this.container.id;
+  }
+
+  initialize() {
+    this.container.innerHTML = "";
+
+    this.result_elem = document.createElement("div");
+    this.result_elem.style.marginTop = "1em";
+    this.result_elem.style.marginBottom = "1em";
+    this.container.appendChild(this.result_elem);
+
+    const join_elem = create_join_elem();
+    this.container.appendChild(join_elem);
+  }
+
+  update_with_responses(response_by_user) {
+    this.result_elem.innerHTML = "";
+
+    this.result_elem.style.backgroundColor = "#dba667";
+    this.result_elem.style.width = "100%";
+    this.result_elem.style.height = "5em";
+
+    const resolution = 300;
+
+    const falloffs = [];
+
+    const falloffs_num = Math.floor(resolution * 0.1);
+    for (let i = 0; i < falloffs_num; i++) {
+      const x = ((i + 1) / falloffs_num) * 2;
+      falloffs.push(Math.exp(-x * x));
+    }
+
+    let heights = Array(resolution).fill(0);
+    for (const value of response_by_user.values()) {
+      const value_f = parseFloat(value) / 100;
+      const center_index = Math.floor(value_f * resolution);
+      if (center_index < heights.length) {
+        heights[center_index] += 1;
+      }
+      for (let falloff_i = 0; falloff_i < falloffs.length; falloff_i++) {
+        const falloff = falloffs[falloff_i];
+        const index_offset = falloff_i + 1;
+        const left_index = center_index - index_offset;
+        if (left_index >= 0) {
+          heights[left_index] += falloff;
+        }
+        const right_index = center_index + index_offset;
+        if (right_index < heights.length) {
+          heights[right_index] += falloff;
+        }
+      }
+    }
+
+    const max_height = Math.max(...heights);
+    if (max_height > 0) {
+      heights = heights.map((h) => h / max_height);
+    }
+
+    const points = [];
+    points.push([0, 0.5]);
+    for (let i = 0; i < heights.length; i++) {
+      const height = heights[i];
+      points.push([i / (heights.length - 1), 0.5 + height / 2]);
+    }
+    points.push([1, 0.5]);
+    for (let i = 0; i < heights.length; i++) {
+      const j = heights.length - 1 - i;
+      const height = heights[j];
+      points.push([j / (heights.length - 1), 0.5 - height / 2]);
+    }
+
+    let polygon_str = "polygon(";
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      polygon_str += `${point[0] * 100}% ${point[1] * 100}%`;
+      if (i < points.length - 1) {
+        polygon_str += ",";
+      }
+    }
+    polygon_str += ")";
+
+    this.result_elem.style.clipPath = polygon_str;
+
+    this.result_elem.innerHTML = "";
+  }
+
+  async get_poll_page() {
+    let page = await fetch("slide_poll.template.html");
+    page = await page.text();
+    page = page.replace("QUESTION_ID", this.id);
+    return page;
+  }
+
+  is_valid_resonse(response) {
+    return true;
+  }
+}
+
+const poll_types = [SingleChoicePoll, SlidePoll];
 
 function create_join_elem() {
   const join_elem = document.createElement("div");
@@ -158,19 +267,23 @@ function create_join_elem() {
 
 function initialize_poll_instances() {
   const polls = [];
-  for (const poll_container of document.getElementsByClassName(
-    "poll-single-choice"
-  )) {
-    polls.push(new SingleChoicePoll(poll_container));
+  for (const poll_type of poll_types) {
+    for (const poll_container of document.getElementsByClassName(
+      poll_type.class_name
+    )) {
+      polls.push(new poll_type(poll_container));
+    }
   }
   return polls;
 }
 
 function find_poll_on_slide(slide) {
-  for (const poll_container of slide.getElementsByClassName(
-    "poll-single-choice"
-  )) {
-    return get_poll_by_container(poll_container);
+  for (const poll_type of poll_types) {
+    for (const poll_container of slide.getElementsByClassName(
+      poll_type.class_name
+    )) {
+      return get_poll_by_container(poll_container);
+    }
   }
   return null;
 }
@@ -305,7 +418,7 @@ async function retrieve_new_poll_responses() {
     if (!data) {
       continue;
     }
-    if (!poll.options.includes(data)) {
+    if (!poll.is_valid_resonse(data)) {
       continue;
     }
     add_response_to_global_map({ question_id, user_id, data });
