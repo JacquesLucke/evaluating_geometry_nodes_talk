@@ -38,8 +38,10 @@ class SingleChoicePoll {
     this.id = this.container.id;
 
     this.options = [];
+    this.options_html = [];
     for (const option_elem of this.container.children) {
       this.options.push(option_elem.innerText);
+      this.options_html.push(option_elem.innerHTML);
     }
 
     this.hide_results_initially =
@@ -57,11 +59,10 @@ class SingleChoicePoll {
       this.options_container.classList.add("options-container");
 
       for (let option_i = 0; option_i < this.options.length; option_i++) {
-        const option = this.options[option_i];
         const option_elem = document.createElement("div");
         this.options_container.appendChild(option_elem);
         option_elem.classList.add("option-elem");
-        option_elem.innerText = option;
+        option_elem.innerHTML = this.options_html[option_i];
         option_elem.style.backgroundColor = option_colors[option_i];
       }
     }
@@ -105,6 +106,7 @@ class SingleChoicePoll {
 
     for (const option of sorted_options) {
       const option_i = this.options.indexOf(option);
+      const option_html = this.options_html[option_i];
       const count = count_by_option.get(option);
       const option_elem = document.createElement("div");
       option_elem.classList.add("poll-bar");
@@ -114,10 +116,10 @@ class SingleChoicePoll {
       option_elem.style.width = `${percentage * 0.9}%`;
 
       if (this.results_revealed) {
-        option_elem.innerText = `${option}: ${count}`;
+        option_elem.innerHTML = `${option_html}: ${count}`;
         option_elem.style.backgroundColor = option_colors[option_i];
       } else {
-        option_elem.innerText = `${count}`;
+        option_elem.innerHTML = `${option_html}`;
       }
 
       option_elem.addEventListener("click", async () => {
@@ -154,6 +156,11 @@ class SlidePoll {
   constructor(poll_container) {
     this.container = poll_container;
     this.id = this.container.id;
+
+    this.options = [];
+    for (const option_elem of this.container.children) {
+      this.options.push(option_elem.innerHTML);
+    }
   }
 
   initialize() {
@@ -161,8 +168,18 @@ class SlidePoll {
 
     this.result_elem = document.createElement("div");
     this.result_elem.style.marginTop = "1em";
-    this.result_elem.style.marginBottom = "1em";
     this.container.appendChild(this.result_elem);
+
+    this.options_elem = document.createElement("div");
+    this.container.appendChild(this.options_elem);
+    this.options_elem.style.display = "flex";
+    this.options_elem.style.justifyContent = "space-between";
+    this.options_elem.style.marginBottom = "1em";
+    for (const option of this.options) {
+      const option_elem = document.createElement("div");
+      option_elem.innerHTML = option;
+      this.options_elem.appendChild(option_elem);
+    }
 
     const join_elem = create_join_elem();
     this.container.appendChild(join_elem);
@@ -183,7 +200,7 @@ class SlidePoll {
 
     const falloffs_num = Math.floor(resolution * 0.1);
     for (let i = 0; i < falloffs_num; i++) {
-      const x = ((i + 1) / falloffs_num) * 2;
+      const x = ((i + 1) / falloffs_num) * 2.3;
       falloffs.push(Math.exp(-x * x));
     }
 
@@ -212,19 +229,15 @@ class SlidePoll {
     if (max_height > 0) {
       heights = heights.map((h) => h / max_height);
     }
+    heights = heights.map((h) => Math.max(h, 0.02));
 
     const points = [];
-    points.push([0, 0.5]);
+    points.push([0, 1]);
     for (let i = 0; i < heights.length; i++) {
       const height = heights[i];
-      points.push([i / (heights.length - 1), 0.5 + height / 2]);
+      points.push([i / (heights.length - 1), 1 - height]);
     }
-    points.push([1, 0.5]);
-    for (let i = 0; i < heights.length; i++) {
-      const j = heights.length - 1 - i;
-      const height = heights[j];
-      points.push([j / (heights.length - 1), 0.5 - height / 2]);
-    }
+    points.push([1, 1]);
 
     let polygon_str = "polygon(";
     for (let i = 0; i < points.length; i++) {
