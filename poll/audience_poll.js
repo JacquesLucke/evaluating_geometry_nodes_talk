@@ -129,7 +129,7 @@ class SingleChoicePoll {
   }
 
   async get_poll_page() {
-    let page = await fetch("choice_poll.template.html");
+    let page = await fetch("poll/choice_poll.template.html");
     page = await page.text();
     page = page.replace("QUESTION_ID", this.id);
     page = page.replace(
@@ -242,7 +242,7 @@ class SlidePoll {
   }
 
   async get_poll_page() {
-    let page = await fetch("slide_poll.template.html");
+    let page = await fetch("poll/slide_poll.template.html");
     page = await page.text();
     page = page.replace("QUESTION_ID", this.id);
     return page;
