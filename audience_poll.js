@@ -10,42 +10,86 @@ let responses_by_question_id = new Map();
 function main() {
   load_responses_from_local_storage();
 
-  const polls_containers =
-    document.getElementsByClassName("poll-single-choice");
-  for (const poll_container of polls_containers) {
-    build_single_choice_poll(poll_container);
-  }
+  all_polls = initialize_polls();
+  start_poll_results_loop();
   update_poll_qr_codes();
 
   Reveal.on("slidechanged", async function (event) {
     stop_getting_poll_results();
     const current_slide = event.currentSlide;
-    const poll_container = current_slide.querySelector(".poll-single-choice");
-    if (!poll_container) {
+    const poll = find_poll_on_slide(current_slide);
+    if (!poll) {
       return;
     }
-    await on_start_single_choice_poll(poll_container);
+    await start_poll(poll);
   });
 }
 
-function build_single_choice_poll(poll_container) {
+function initialize_polls() {
+  const polls = {
+    single_choice: [],
+  };
+
+  for (const poll_container of document.getElementsByClassName(
+    "poll-single-choice"
+  )) {
+    polls.single_choice.push(initialize_single_choice_poll(poll_container));
+  }
+
+  return polls;
+}
+
+function find_poll_on_slide(slide) {
+  for (const poll_container of slide.getElementsByClassName(
+    "poll-single-choice"
+  )) {
+    return get_poll_by_container(poll_container);
+  }
+  return null;
+}
+
+function get_poll_by_container(container) {
+  for (const poll of all_polls.single_choice) {
+    if (poll.container === container) {
+      return poll;
+    }
+  }
+  return null;
+}
+
+function get_poll_by_id(id) {
+  for (const poll of all_polls.single_choice) {
+    if (poll.id === id) {
+      return poll;
+    }
+  }
+  return null;
+}
+
+function initialize_single_choice_poll(poll_container) {
+  const poll = {
+    type: "single-choice",
+    id: poll_container.id,
+    container: poll_container,
+  };
+
   const options = [];
   for (const option_elem of poll_container.children) {
     options.push(option_elem.innerText);
   }
 
-  const hide_results = poll_container.hasAttribute("data-hide-result");
-
   poll_container.innerHTML = "";
-  poll_container.poll_options = options;
-  poll_container.results_revealed = !hide_results;
+
+  poll.options = options;
+  poll.hide_results_initially = poll_container.hasAttribute("data-hide-result");
+  poll.results_revealed = !poll.hide_results_initially;
 
   const poll_link = get_poll_link();
 
-  if (hide_results) {
+  if (poll.hide_results_initially) {
     const options_container = document.createElement("div");
     poll_container.appendChild(options_container);
-    poll_container.options_container = options_container;
+    poll.options_container = options_container;
     options_container.classList.add("options-container");
 
     for (const option_i in options) {
@@ -60,7 +104,7 @@ function build_single_choice_poll(poll_container) {
 
   const result_elem = document.createElement("div");
   poll_container.appendChild(result_elem);
-  poll_container.result_elem = result_elem;
+  poll.result_elem = result_elem;
 
   const join_elem = document.createElement("div");
   poll_container.appendChild(join_elem);
@@ -68,7 +112,9 @@ function build_single_choice_poll(poll_container) {
   join_elem.innerHTML = `Join at <code>${poll_link}</code>`;
   join_elem.addEventListener("click", open_settings);
 
-  update_poll_result(poll_container);
+  update_poll_result(poll);
+
+  return poll;
 }
 
 function set_new_session_id(new_session_id) {
@@ -119,10 +165,17 @@ function open_settings() {
   });
 }
 
-async function on_start_single_choice_poll(poll_container) {
-  const question_id = poll_container.id;
-  const options = poll_container.poll_options;
-  const result_elem = poll_container.result_elem;
+async function start_poll(poll) {
+  if (poll.type == "single-choice") {
+    start_single_choice_poll(poll);
+  }
+  start_getting_poll_results();
+}
+
+async function start_single_choice_poll(poll) {
+  const question_id = poll.id;
+  const options = poll.options;
+
   let template = await fetch("poll.template.html");
   template = await template.text();
   template = template.replace("QUESTION_ID", question_id);
@@ -135,11 +188,9 @@ async function on_start_single_choice_poll(poll_container) {
     JSON.stringify(option_colors)
   );
   update_poll_page(template);
-  start_getting_poll_results();
-  poll_results_loop();
 }
 
-function poll_results_loop() {
+function start_poll_results_loop() {
   const handler = async () => {
     if (do_poll_results.active) {
       await retrieve_new_poll_responses();
@@ -161,11 +212,11 @@ function stop_getting_poll_results() {
 
 function update_poll_results_on_current_slide() {
   const current_slide = Reveal.getCurrentSlide();
-  const poll_container = current_slide.querySelector(".poll-single-choice");
-  if (!poll_container) {
+  const poll = find_poll_on_slide(current_slide);
+  if (!poll) {
     return;
   }
-  update_poll_result(poll_container);
+  update_poll_result(poll);
 }
 
 async function retrieve_new_poll_responses() {
@@ -177,14 +228,14 @@ async function retrieve_new_poll_responses() {
 
   for (const [user_id, response] of Object.entries(responses)) {
     const { question_id, data } = JSON.parse(response);
-    const poll_container = document.getElementById(question_id);
-    if (!poll_container) {
+    const poll = get_poll_by_id(question_id);
+    if (!poll) {
       continue;
     }
     if (!data) {
       continue;
     }
-    if (!poll_container.poll_options.includes(data)) {
+    if (!poll.options.includes(data)) {
       continue;
     }
     add_response_to_global_map({ question_id, user_id, data });
@@ -192,10 +243,10 @@ async function retrieve_new_poll_responses() {
   store_responses_in_local_storage();
 }
 
-async function update_poll_result(poll_container) {
-  const result_elem = poll_container.result_elem;
-  const question_id = poll_container.id;
-  const valid_options = poll_container.poll_options;
+async function update_poll_result(poll) {
+  const result_elem = poll.result_elem;
+  const question_id = poll.id;
+  const valid_options = poll.options;
 
   // Clear old results.
   result_elem.innerHTML = "";
@@ -224,7 +275,7 @@ async function update_poll_result(poll_container) {
   }
 
   const sorted_options = [...valid_options];
-  if (poll_container.hasAttribute("data-hide-result")) {
+  if (poll.hide_results_initially) {
     // Sort by count in case the results should be hidden initially.
     // Otherwise, it's obvious which bar corresponds to which option.
     sorted_options.sort(
@@ -242,7 +293,7 @@ async function update_poll_result(poll_container) {
     const percentage = (count / Math.max(1, responses_num)) * 100;
     option_elem.style.width = `${percentage * 0.9}%`;
 
-    if (poll_container.results_revealed) {
+    if (poll.results_revealed) {
       option_elem.innerText = `${option}: ${count}`;
       option_elem.style.backgroundColor = option_colors[option_i];
     } else {
@@ -250,9 +301,9 @@ async function update_poll_result(poll_container) {
     }
 
     option_elem.addEventListener("click", async () => {
-      poll_container.results_revealed = true;
-      poll_container.options_container.style.display = "None";
-      await update_poll_result(poll_container);
+      poll.results_revealed = true;
+      poll.options_container.style.display = "None";
+      await update_poll_result(poll);
     });
   }
 }
@@ -351,6 +402,7 @@ function add_response_to_global_map(response) {
   question_responses.response_by_user.set(user_id, response_data);
 }
 
-main();
-
 let do_poll_results = { active: false };
+let all_polls = undefined;
+
+main();
