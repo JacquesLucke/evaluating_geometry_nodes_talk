@@ -1,6 +1,5 @@
-// let polli_live_url = "https://poll.jlucke.com";
-// let polli_live_url = "http://192.168.0.15:8080";
-let polli_live_url = "http://192.168.0.15:8000";
+let polli_live_url = "https://polli.live";
+// let polli_live_url = "http://192.168.0.15:8000";
 let current_session = null;
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
