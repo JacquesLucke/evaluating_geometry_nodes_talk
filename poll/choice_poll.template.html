@@ -94,12 +94,6 @@
       let multiple_choice_options = "MULTIPLE_CHOICE_OPTIONS";
       // multiple_choice_options = ["Artist", "Developer", "Teacher", "Other"];
 
-      let user_id = localStorage.getItem("user_id");
-      if (!user_id) {
-        user_id = Math.random().toString(36).substr(2, 9);
-      }
-      localStorage.setItem("user_id", user_id);
-
       const option_colors = "MULTIPLE_CHOICE_COLORS";
       // const option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
       const vote_container_elem = document.getElementById("vote-container");
@@ -127,24 +121,7 @@
           elem.classList.remove("selected");
         }
         selected_option_elem.classList.add("selected");
-
-        respond(option);
-      }
-
-      function respond(data) {
-        const params = new URLSearchParams(window.location.search);
-        fetch(
-          `${window.location.protocol}//${
-            window.location.host
-          }/respond?user=${user_id}&session=${params.get("session")}`,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              question_id: question_id,
-              data: data,
-            }),
-          }
-        );
+        polli_live.respond(JSON.stringify({ question_id, data: option }));
       }
 
       document.getElementById("next-button").addEventListener("click", () => {
