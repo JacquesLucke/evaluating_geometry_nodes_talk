@@ -9,8 +9,10 @@ const poll_interval_ms = 100;
 let responses_by_question_id = new Map();
 
 function main() {
-  // No need to block here until the session is initialized.
-  prepare_session();
+  setTimeout(async () => {
+    await prepare_session();
+    session_updated();
+  }, 0);
 
   // Old responses are stored in local storage so that they are still available
   // after a reload.
@@ -22,7 +24,6 @@ function main() {
     update_poll_result(poll);
   }
 
-  update_poll_qr_codes();
   start_poll_results_loop();
 
   Reveal.on("slidechanged", async function (event) {
@@ -302,9 +303,11 @@ class SlidePoll {
 const poll_types = [SingleChoicePoll, SlidePoll];
 
 function create_join_elem() {
+  const link = get_poll_link();
+
   const join_elem = document.createElement("div");
   const link_elem = document.createElement("code");
-  link_elem.innerText = get_poll_link();
+  link_elem.innerText = link ? link : "...";
   link_elem.classList.add("join-link-elem");
   join_elem.classList.add("join-poll");
   join_elem.appendChild(document.createTextNode("Join at "));
@@ -357,15 +360,24 @@ function get_poll_by_id(id) {
 function session_updated() {
   const new_link = get_poll_link();
   for (const link_elem of document.getElementsByClassName("join-link-elem")) {
-    link_elem.innerText = new_link;
-    if (link_elem.tagName === "a") {
-      link_elem.href = new_link;
+    if (new_link) {
+      link_elem.innerText = new_link;
+      if (link_elem.tagName === "a") {
+        link_elem.href = new_link;
+      }
+    } else {
+      link_elem.innerText = "...";
+      if (link_elem.tagName === "a") {
+        link_elem.href = "";
+      }
     }
   }
   update_poll_qr_codes();
-  const poll = find_poll_on_current_slide();
-  if (poll) {
-    start_poll(poll);
+  if (new_link) {
+    const poll = find_poll_on_current_slide();
+    if (poll) {
+      start_poll(poll);
+    }
   }
 }
 
@@ -377,19 +389,23 @@ function open_settings() {
   new_session_elem.innerText = "New Session";
   new_session_elem.addEventListener("click", on_new_session);
 
-  const qr_elem = document.createElement("div");
-  settings_elem.appendChild(qr_elem);
-  qr_elem.classList.add("poll-qr-code");
-  const image = get_qr_code_image_data(get_poll_link(), qrcode_size);
-  update_qr_code_elem(qr_elem, image);
+  const poll_link = get_poll_link();
 
-  const link_elem = document.createElement("a");
-  settings_elem.appendChild(link_elem);
-  link_elem.classList.add("settings-poll-link");
-  link_elem.classList.add("join-link-elem");
-  link_elem.href = get_poll_link();
-  link_elem.target = "_blank";
-  link_elem.innerText = get_poll_link();
+  if (poll_link) {
+    const qr_elem = document.createElement("div");
+    settings_elem.appendChild(qr_elem);
+    qr_elem.classList.add("poll-qr-code");
+    const image = get_qr_code_image_data(poll_link, qrcode_size);
+    update_qr_code_elem(qr_elem, image);
+
+    const link_elem = document.createElement("a");
+    settings_elem.appendChild(link_elem);
+    link_elem.classList.add("settings-poll-link");
+    link_elem.classList.add("join-link-elem");
+    link_elem.href = poll_link;
+    link_elem.target = "_blank";
+    link_elem.innerText = poll_link;
+  }
 
   Swal.fire({
     html: settings_elem,
@@ -399,6 +415,10 @@ function open_settings() {
 }
 
 async function start_poll(poll) {
+  if (!current_session) {
+    return;
+  }
+
   const page = await poll.get_poll_page();
   await fetch(`${polli_live_url}/set_page?session=${current_session.session}`, {
     method: "POST",
@@ -413,9 +433,11 @@ async function start_poll(poll) {
 
 function start_poll_results_loop() {
   const handler = async () => {
-    if (do_poll_results.active) {
-      await retrieve_new_poll_responses();
-      update_poll_results_on_current_slide();
+    if (current_session) {
+      if (do_poll_results.active) {
+        await retrieve_new_poll_responses();
+        update_poll_results_on_current_slide();
+      }
     }
     setTimeout(handler, poll_interval_ms);
   };
@@ -445,6 +467,9 @@ function find_poll_on_current_slide() {
 }
 
 async function retrieve_new_poll_responses() {
+  if (!current_session) {
+    return;
+  }
   let responses;
   try {
     responses = await fetch(
@@ -452,6 +477,7 @@ async function retrieve_new_poll_responses() {
     );
   } catch (e) {
     console.error(e);
+    return;
   }
   if (!responses.ok) {
     return;
@@ -486,9 +512,17 @@ async function update_poll_result(poll) {
 }
 
 function update_poll_qr_codes() {
-  const image = get_qr_code_image_data(get_poll_link(), qrcode_size);
-  for (const qr_code_elem of document.getElementsByClassName("poll-qr-code")) {
-    update_qr_code_elem(qr_code_elem, image);
+  const link = get_poll_link();
+  const elems = document.getElementsByClassName("poll-qr-code");
+  if (link) {
+    const image = get_qr_code_image_data(link, qrcode_size);
+    for (const qr_code_elem of elems) {
+      update_qr_code_elem(qr_code_elem, image);
+    }
+  } else {
+    for (const qr_code_elem of elems) {
+      qr_code_elem.innerHTML = "";
+    }
   }
 }
 
