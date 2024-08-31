@@ -1,6 +1,7 @@
 let polli_live_url = "https://polli.live";
 // let polli_live_url = "http://192.168.0.15:8000";
 let current_session = null;
+let next_response_id = 0;
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 100;
@@ -38,6 +39,7 @@ function main() {
 
 async function prepare_session() {
   current_session = null;
+  next_response_id = 0;
   try {
     let desired_session = localStorage.getItem("session");
     const res = await fetch(`${polli_live_url}/init_session`, {
@@ -427,6 +429,7 @@ async function start_poll(poll) {
     },
   });
 
+  next_response_id = 0;
   start_getting_poll_results();
 }
 
@@ -472,7 +475,7 @@ async function retrieve_new_poll_responses() {
   let responses;
   try {
     responses = await fetch(
-      `${polli_live_url}/responses?session=${current_session.session}`
+      `${polli_live_url}/responses?session=${current_session.session}&start=${next_response_id}`
     );
   } catch (e) {
     console.error(e);
@@ -482,6 +485,7 @@ async function retrieve_new_poll_responses() {
     return;
   }
   responses = await responses.json();
+  next_response_id = responses.next_start;
 
   for (const [user_id, response] of Object.entries(
     responses.responses_by_user
