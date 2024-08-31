@@ -1,13 +1,19 @@
-let server_url = "https://poll.jlucke.com";
-// let server_url = "http://192.168.0.15:8080";
-let session_id = localStorage.getItem("session_id") || "test";
+// let polli_live_url = "https://poll.jlucke.com";
+// let polli_live_url = "http://192.168.0.15:8080";
+let polli_live_url = "http://192.168.0.15:8000";
+let current_session = null;
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
-const poll_interval_ms = 500;
+const poll_interval_ms = 100;
 
 let responses_by_question_id = new Map();
 
 function main() {
+  // No need to block here until the session is initialized.
+  prepare_session();
+
+  // Old responses are stored in local storage so that they are still available
+  // after a reload.
   load_responses_from_local_storage();
 
   all_polls = initialize_poll_instances();
@@ -28,6 +34,33 @@ function main() {
     }
     await start_poll(poll);
   });
+}
+
+async function prepare_session() {
+  current_session = null;
+  try {
+    let desired_session = localStorage.getItem("session");
+    const res = await fetch(`${polli_live_url}/init_session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: desired_session,
+    });
+    if (res.ok) {
+      current_session = await res.json();
+      localStorage.setItem("session", JSON.stringify(current_session));
+      return;
+    }
+  } catch {}
+  console.error(
+    "Could not initialize polli.live session. Check that the server is running. Interactive features are disabled."
+  );
+}
+
+async function make_new_session() {
+  localStorage.removeItem("session");
+  await prepare_session();
 }
 
 class SingleChoicePoll {
@@ -321,9 +354,7 @@ function get_poll_by_id(id) {
   return null;
 }
 
-function set_new_session_id(new_session_id) {
-  session_id = new_session_id;
-  localStorage.setItem("session_id", session_id);
+function session_updated() {
   const new_link = get_poll_link();
   for (const link_elem of document.getElementsByClassName("join-link-elem")) {
     link_elem.innerText = new_link;
@@ -341,17 +372,10 @@ function set_new_session_id(new_session_id) {
 function open_settings() {
   const settings_elem = document.createElement("div");
 
-  const session_id_elem = document.createElement("input");
-  settings_elem.appendChild(session_id_elem);
-  session_id_elem.value = session_id;
-  session_id_elem.addEventListener("change", () => {
-    set_new_session_id(session_id_elem.value);
-  });
-
-  const reset_responses_elem = document.createElement("button");
-  settings_elem.appendChild(reset_responses_elem);
-  reset_responses_elem.innerText = "Reset Responses";
-  reset_responses_elem.addEventListener("click", reset_responses);
+  const new_session_elem = document.createElement("button");
+  settings_elem.appendChild(new_session_elem);
+  new_session_elem.innerText = "New Session";
+  new_session_elem.addEventListener("click", on_new_session);
 
   const qr_elem = document.createElement("div");
   settings_elem.appendChild(qr_elem);
@@ -376,9 +400,12 @@ function open_settings() {
 
 async function start_poll(poll) {
   const page = await poll.get_poll_page();
-  await fetch(`${get_poll_link()}/set_page`, {
+  await fetch(`${polli_live_url}/set_page?session=${current_session.session}`, {
     method: "POST",
     body: page,
+    headers: {
+      Authorization: "Bearer " + current_session.token,
+    },
   });
 
   start_getting_poll_results();
@@ -418,13 +445,22 @@ function find_poll_on_current_slide() {
 }
 
 async function retrieve_new_poll_responses() {
-  let responses = await fetch(`${get_poll_link()}/responses`);
+  let responses;
+  try {
+    responses = await fetch(
+      `${polli_live_url}/responses?session=${current_session.session}`
+    );
+  } catch (e) {
+    console.error(e);
+  }
   if (!responses.ok) {
     return;
   }
   responses = await responses.json();
 
-  for (const [user_id, response] of Object.entries(responses)) {
+  for (const [user_id, response] of Object.entries(
+    responses.responses_by_user
+  )) {
     const { question_id, data } = JSON.parse(response);
     const poll = get_poll_by_id(question_id);
     if (!poll) {
@@ -467,7 +503,10 @@ function update_qr_code_elem(qr_code_elem, image) {
 }
 
 function get_poll_link() {
-  return `${server_url}/s/${session_id}`;
+  if (current_session) {
+    return `${polli_live_url}?session=${current_session.session}`;
+  }
+  return null;
 }
 
 function get_qr_code_image_data(text, size) {
@@ -516,10 +555,8 @@ function store_responses_in_local_storage() {
   localStorage.setItem("all_responses", JSON.stringify(responses));
 }
 
-async function reset_responses() {
-  await fetch(`${get_poll_link()}/reset_responses`, {
-    method: "POST",
-  });
+async function on_new_session() {
+  await make_new_session();
   responses_by_question_id = new Map();
   store_responses_in_local_storage();
 }

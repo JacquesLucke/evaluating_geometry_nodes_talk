@@ -69,7 +69,6 @@
 
     <script>
       let question_id = "QUESTION_ID";
-      const url = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
 
       let user_id = localStorage.getItem("user_id");
       if (!user_id) {
@@ -83,19 +82,25 @@
 
       async function main() {
         const slider_elem = document.getElementById("slider");
-        slider_elem.addEventListener("change", () => {
+        slider_elem.addEventListener("input", () => {
           respond(slider_elem.value);
         });
       }
 
       function respond(data) {
-        fetch(`${url}/respond/${user_id}`, {
-          method: "POST",
-          body: JSON.stringify({
-            question_id: question_id,
-            data: data,
-          }),
-        });
+        const params = new URLSearchParams(window.location.search);
+        fetch(
+          `${window.location.protocol}//${
+            window.location.host
+          }/respond?user=${user_id}&session=${params.get("session")}`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              question_id: question_id,
+              data: data,
+            }),
+          }
+        );
       }
 
       document.getElementById("next-button").addEventListener("click", () => {
