@@ -373,8 +373,10 @@ const polli_live = (function () {
 
       const link_elem = document.createElement("a");
       settings_elem.appendChild(link_elem);
-      link_elem.classList.add("settings-poll-link");
       link_elem.classList.add("join-poll");
+      link_elem.style.color = "white";
+      link_elem.style.fontFamily = "monospace";
+      link_elem.style.textDecoration = "none";
       link_elem.style.fontSize = "larger";
       link_elem.href = globals.connection.poll_link;
       link_elem.target = "_blank";

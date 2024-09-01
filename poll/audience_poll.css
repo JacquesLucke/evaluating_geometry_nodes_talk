@@ -1,16 +1,3 @@
-#response > div {
-  background-color: aqua;
-  text-align: left;
-  padding-left: 1em;
-  color: black;
-}
-
-.settings-poll-link {
-  color: white;
-  font-family: monospace;
-  text-decoration: none;
-}
-
 .join-poll {
   background-color: #3f3f3f;
   display: block;
@@ -29,30 +16,4 @@
 
 .join-poll > code {
   color: rgb(126, 202, 253);
-}
-
-.poll-bar {
-  background-color: #464646;
-  min-width: 2em;
-  text-align: left;
-  padding-left: 0.5em;
-  overflow: visible;
-  white-space: nowrap;
-  margin: 0.3em;
-  border-radius: 0.3em;
-  text-shadow: black 0 0 2px;
-  cursor: pointer;
-}
-
-.options-container {
-  display: flex;
-}
-
-.option-elem {
-  border-radius: 0.3em;
-  width: fit-content;
-  margin-left: 1em;
-  padding: 0.3em;
-  font-size: 70%;
-  text-shadow: black 0 0 2px;
 }

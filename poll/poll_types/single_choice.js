@@ -25,15 +25,19 @@ const polli_live_plugin_single_choice = (function () {
       if (this.hide_results_initially) {
         this.options_container = document.createElement("div");
         this.container.appendChild(this.options_container);
-
-        this.options_container.classList.add("options-container");
+        this.options_container.style.display = "flex";
 
         for (let option_i = 0; option_i < this.options.length; option_i++) {
           const option_elem = document.createElement("div");
           this.options_container.appendChild(option_elem);
-          option_elem.classList.add("option-elem");
           option_elem.innerHTML = this.options_html[option_i];
           option_elem.style.backgroundColor = this.option_colors[option_i];
+          option_elem.style.borderRadius = "0.3em";
+          option_elem.style.width = "fit-content";
+          option_elem.style.marginLeft = "1em";
+          option_elem.style.padding = "0.3em";
+          option_elem.style.fontSize = "70%";
+          option_elem.style.textShadow = "black 0 0 2px";
         }
       }
 
@@ -79,8 +83,17 @@ const polli_live_plugin_single_choice = (function () {
         const option_html = this.options_html[option_i];
         const count = count_by_option.get(option);
         const option_elem = document.createElement("div");
-        option_elem.classList.add("poll-bar");
         this.result_elem.appendChild(option_elem);
+
+        option_elem.style.minWidth = "2em";
+        option_elem.style.textAlign = "left";
+        option_elem.style.paddingLeft = "0.5em";
+        option_elem.style.overflow = "visible";
+        option_elem.style.whiteSpace = "nowrap";
+        option_elem.style.margin = "0.3em";
+        option_elem.style.borderRadius = "0.3em";
+        option_elem.style.textShadow = "black 0 0 2px";
+        option_elem.style.cursor = "pointer";
 
         const percentage = (count / Math.max(1, responses_num)) * 100;
         option_elem.style.width = `${percentage * 0.9}%`;
@@ -90,6 +103,7 @@ const polli_live_plugin_single_choice = (function () {
           option_elem.style.backgroundColor = this.option_colors[option_i];
         } else {
           option_elem.innerHTML = `${count}`;
+          option_elem.style.backgroundColor = "#464646";
         }
 
         option_elem.addEventListener("click", async () => {
