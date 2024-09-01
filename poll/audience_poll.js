@@ -1,16 +1,13 @@
 let polli_live_url = "https://polli.live";
 // let polli_live_url = "http://192.168.0.15:9000";
 let polli_live_url_human = "polli.live";
-let current_session = null;
-let next_response_id = 0;
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 100;
 
 function main() {
   setTimeout(async () => {
-    await prepare_session();
-    session_updated();
+    await polli_live_connection.init_session();
   }, 0);
 
   // Old responses are stored in local storage so that they are still available
@@ -20,45 +17,13 @@ function main() {
   all_polls.gather(document);
   all_polls.initialize_all(global_responses);
 
-  start_poll_results_loop();
-
   Reveal.on("slidechanged", async function (event) {
-    stop_getting_poll_results();
-    const current_slide = event.currentSlide;
-    const poll = all_polls.by_parent(current_slide);
-    if (!poll) {
-      return;
+    polli_live_connection.stop_fetching_responses();
+    const poll = find_poll_on_current_slide();
+    if (poll) {
+      await start_poll(poll);
     }
-    await start_poll(poll);
   });
-}
-
-async function prepare_session() {
-  current_session = null;
-  next_response_id = 0;
-  try {
-    let desired_session = localStorage.getItem("session");
-    const res = await fetch(`${polli_live_url}/new`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: desired_session,
-    });
-    if (res.ok) {
-      current_session = await res.json();
-      localStorage.setItem("session", JSON.stringify(current_session));
-      return;
-    }
-  } catch {}
-  console.error(
-    "Could not initialize polli.live session. Check that the server is running. Interactive features are disabled."
-  );
-}
-
-async function make_new_session() {
-  localStorage.removeItem("session");
-  await prepare_session();
 }
 
 class SingleChoicePoll {
@@ -297,8 +262,6 @@ class SlidePoll {
   }
 }
 
-const all_poll_types = [SingleChoicePoll, SlidePoll];
-
 function create_join_elem() {
   const link = get_poll_link();
 
@@ -309,32 +272,6 @@ function create_join_elem() {
   `;
   join_elem.addEventListener("click", open_settings);
   return join_elem;
-}
-
-function session_updated() {
-  const new_link = get_poll_link();
-  for (const session_id_elem of document.getElementsByClassName("session-id")) {
-    if (current_session) {
-      session_id_elem.innerText = current_session.session;
-    } else {
-      session_id_elem.innerText = "...";
-    }
-  }
-  for (const settings_elem of document.getElementsByClassName(
-    "polli-settings-container"
-  )) {
-    settings_elem.innerHTML = "";
-    settings_elem.appendChild(make_settings_elem());
-  }
-
-  update_poll_qr_codes();
-  all_polls.update_all(global_responses);
-  if (new_link) {
-    const poll = find_poll_on_current_slide();
-    if (poll) {
-      start_poll(poll);
-    }
-  }
 }
 
 function open_settings() {
@@ -355,7 +292,11 @@ function make_settings_elem() {
   const new_session_elem = document.createElement("button");
   settings_elem.appendChild(new_session_elem);
   new_session_elem.innerText = "New Session";
-  new_session_elem.addEventListener("click", on_new_session);
+  new_session_elem.addEventListener("click", async () => {
+    global_responses.clear();
+    global_responses.store_in_local_storage();
+    await polli_live_connection.make_new_session();
+  });
 
   const poll_link = get_poll_link();
 
@@ -380,7 +321,7 @@ function make_settings_elem() {
     link_elem.style.fontSize = "larger";
     link_elem.href = poll_link;
     link_elem.target = "_blank";
-    link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${current_session.session}</code>`;
+    link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${polli_live_connection.session}</code>`;
   } else {
     const error_elem = document.createElement("div");
     settings_elem.append(error_elem);
@@ -393,88 +334,14 @@ function make_settings_elem() {
 }
 
 async function start_poll(poll) {
-  if (!current_session) {
-    return;
-  }
-
   const page = await poll.get_poll_page();
-  await fetch(`${polli_live_url}/page?session=${current_session.session}`, {
-    method: "POST",
-    body: page,
-    headers: {
-      Authorization: "Bearer " + current_session.token,
-    },
-  });
-
-  next_response_id = 0;
-  start_getting_poll_results();
-}
-
-function start_poll_results_loop() {
-  const handler = async () => {
-    if (current_session) {
-      if (do_poll_results.active) {
-        await retrieve_new_poll_responses();
-        update_poll_results_on_current_slide();
-      }
-    }
-    setTimeout(handler, poll_interval_ms);
-  };
-
-  handler();
-}
-
-function start_getting_poll_results() {
-  do_poll_results.active = true;
-}
-
-function stop_getting_poll_results() {
-  do_poll_results.active = false;
-}
-
-function update_poll_results_on_current_slide() {
-  const poll = find_poll_on_current_slide();
-  if (!poll) {
-    return;
-  }
-  update_poll_result(poll);
+  await polli_live_connection.set_page(page);
+  polli_live_connection.start_fetching_responses();
 }
 
 function find_poll_on_current_slide() {
   const current_slide = Reveal.getCurrentSlide();
   return all_polls.by_parent(current_slide);
-}
-
-async function retrieve_new_poll_responses() {
-  if (!current_session) {
-    return;
-  }
-  let responses;
-  try {
-    responses = await fetch(
-      `${polli_live_url}/responses?session=${current_session.session}&start=${next_response_id}`
-    );
-  } catch (e) {
-    console.error(e);
-    return;
-  }
-  if (!responses.ok) {
-    return;
-  }
-  responses = await responses.json();
-  next_response_id = responses.next_start;
-
-  for (const [user_id, response] of Object.entries(
-    responses.responses_by_user
-  )) {
-    const { poll_id, data } = JSON.parse(response);
-    global_responses.try_add_response(poll_id, user_id, data);
-  }
-  global_responses.store_in_local_storage();
-}
-
-async function update_poll_result(poll) {
-  poll.update_with_responses(global_responses.responses_for_poll(poll.id));
 }
 
 function update_poll_qr_codes() {
@@ -504,8 +371,8 @@ function update_qr_code_elem(qr_code_elem, image) {
 }
 
 function get_poll_link() {
-  if (current_session) {
-    return `${polli_live_url}/page?session=${current_session.session}`;
+  if (polli_live_connection.session) {
+    return `${polli_live_url}/page?session=${polli_live_connection.session}`;
   }
   return null;
 }
@@ -530,13 +397,6 @@ function get_qr_code_image_data(text, size) {
   );
   elem.remove();
   return image_data;
-}
-
-async function on_new_session() {
-  await make_new_session();
-  global_responses.clear();
-  global_responses.store_in_local_storage();
-  session_updated();
 }
 
 class PollResponses {
@@ -654,7 +514,7 @@ class Polls {
   }
 
   by_parent(parent_elem) {
-    for (const poll_type of all_poll_types) {
+    for (const poll_type of this.poll_types) {
       for (const poll_container of parent_elem.getElementsByClassName(
         poll_type.class_name
       )) {
@@ -673,12 +533,183 @@ function response_is_valid(poll_id, response_data) {
   return poll.is_valid_response(response_data);
 }
 
+class PolliLiveConnection {
+  constructor(
+    url,
+    responses,
+    local_storage_key,
+    on_session_change,
+    on_response_change
+  ) {
+    this.url = url;
+    this.responses = responses;
+    this.local_storage_key = local_storage_key;
+    this.on_session_change = on_session_change;
+    this.on_response_change = on_response_change;
+    this.session = null;
+    this.token = null;
+    this.next_response = 0;
+    this.should_fetch_responses = false;
+    this.#start_fetch_responses_loop();
+  }
+
+  async init_session() {
+    this.session = null;
+    this.token = null;
+    this.next_response = 0;
+    try {
+      let desired_session = localStorage.getItem(this.local_storage_key);
+      const res = await fetch(`${this.url}/new`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: desired_session,
+      });
+      if (res.ok) {
+        const new_session = await res.json();
+        localStorage.setItem(
+          this.local_storage_key,
+          JSON.stringify(new_session)
+        );
+        this.session = new_session.session;
+        this.token = new_session.token;
+        return;
+      }
+    } finally {
+      this.on_session_change();
+    }
+    console.error(`Could not initialize session on ${this.url}.`);
+  }
+
+  async make_new_session() {
+    localStorage.removeItem(this.local_storage_key);
+    await this.init_session();
+  }
+
+  async set_page(page) {
+    if (!this.session || !this.token) {
+      return;
+    }
+    try {
+      const res = await fetch(`${this.url}/page?session=${this.session}`, {
+        method: "POST",
+        body: page,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      if (res.ok) {
+        return;
+      }
+    } catch {}
+    console.error(`Could not set poll page.`);
+  }
+
+  start_fetching_responses() {
+    this.should_fetch_responses = true;
+  }
+
+  stop_fetching_responses() {
+    this.should_fetch_responses = false;
+  }
+
+  #start_fetch_responses_loop() {
+    const handler = async () => {
+      try {
+        if (!this.session) {
+          return;
+        }
+        if (!this.should_fetch_responses) {
+          return;
+        }
+        if (await this.#fetch_new_responses()) {
+          this.on_response_change();
+        }
+      } finally {
+        setTimeout(handler, poll_interval_ms);
+      }
+    };
+
+    handler();
+  }
+
+  async #fetch_new_responses() {
+    if (!this.session) {
+      return false;
+    }
+
+    try {
+      let responses = await fetch(
+        `${this.url}/responses?session=${this.session}&start=${this.next_response}`
+      );
+      if (!responses.ok) {
+        return false;
+      }
+      responses = await responses.json();
+      this.next_response = responses.next_start;
+
+      let found_new_responses = false;
+      for (const [user_id, response] of Object.entries(
+        responses.responses_by_user
+      )) {
+        const { poll_id, data } = JSON.parse(response);
+        this.responses.try_add_response(poll_id, user_id, data);
+        found_new_responses = true;
+      }
+      return found_new_responses;
+    } catch {}
+    return false;
+  }
+}
+
+function polli_live_session_changed() {
+  const new_link = get_poll_link();
+  for (const session_id_elem of document.getElementsByClassName("session-id")) {
+    if (polli_live_connection.session) {
+      session_id_elem.innerText = polli_live_connection.session;
+    } else {
+      session_id_elem.innerText = "...";
+    }
+  }
+  for (const settings_elem of document.getElementsByClassName(
+    "polli-settings-container"
+  )) {
+    settings_elem.innerHTML = "";
+    settings_elem.appendChild(make_settings_elem());
+  }
+
+  update_poll_qr_codes();
+  all_polls.update_all(global_responses);
+  if (new_link) {
+    const poll = find_poll_on_current_slide();
+    if (poll) {
+      start_poll(poll);
+    }
+  }
+}
+
+function polli_live_has_new_responses() {
+  const poll = find_poll_on_current_slide();
+  if (poll) {
+    poll.update_with_responses(global_responses.responses_for_poll(poll.id));
+  }
+}
+
 let do_poll_results = { active: false };
 let all_polls = new Polls([SingleChoicePoll, SlidePoll]);
 
 let global_responses = new PollResponses(
   "polli_live_responses",
   response_is_valid
+);
+
+let polli_live_connection = new PolliLiveConnection(
+  polli_live_url,
+  global_responses,
+  "polli-live",
+  polli_live_session_changed,
+  polli_live_has_new_responses
 );
 
 main();
