@@ -414,10 +414,11 @@ function make_settings_elem() {
     const link_elem = document.createElement("a");
     settings_elem.appendChild(link_elem);
     link_elem.classList.add("settings-poll-link");
-    link_elem.classList.add("join-link-elem");
+    link_elem.classList.add("join-poll");
+    link_elem.style.fontSize = "larger";
     link_elem.href = poll_link;
     link_elem.target = "_blank";
-    link_elem.innerText = poll_link;
+    link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${current_session.session}</code>`;
   } else {
     const error_elem = document.createElement("div");
     settings_elem.append(error_elem);
