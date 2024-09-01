@@ -31,13 +31,15 @@ const polli_live_plugin_single_choice = (function () {
           const option_elem = document.createElement("div");
           this.options_container.appendChild(option_elem);
           option_elem.innerHTML = this.options_html[option_i];
-          option_elem.style.backgroundColor = this.option_colors[option_i];
-          option_elem.style.borderRadius = "0.3em";
-          option_elem.style.width = "fit-content";
-          option_elem.style.marginLeft = "1em";
-          option_elem.style.padding = "0.3em";
-          option_elem.style.fontSize = "70%";
-          option_elem.style.textShadow = "black 0 0 2px";
+          option_elem.style.cssText = `
+            background-color: ${this.option_colors[option_i]};
+            border-radius: 0.3em;
+            width: fit-content;
+            margin-left: 1em;
+            padding: 0.3em;
+            font-size: 70%;
+            text-shadow: black 0 0 2px;
+          `;
         }
       }
 
@@ -85,15 +87,17 @@ const polli_live_plugin_single_choice = (function () {
         const option_elem = document.createElement("div");
         this.result_elem.appendChild(option_elem);
 
-        option_elem.style.minWidth = "2em";
-        option_elem.style.textAlign = "left";
-        option_elem.style.paddingLeft = "0.5em";
-        option_elem.style.overflow = "visible";
-        option_elem.style.whiteSpace = "nowrap";
-        option_elem.style.margin = "0.3em";
-        option_elem.style.borderRadius = "0.3em";
-        option_elem.style.textShadow = "black 0 0 2px";
-        option_elem.style.cursor = "pointer";
+        option_elem.style.cssText = `
+          min-width: 2em;
+          text-align: left;
+          padding-left: 0.5em;
+          white-space: nowrap;
+          margin: 0.3em;
+          border-radius: 0.3em;
+          overflow: visible;
+          textShadow: black 0 0 2px;
+          cursor: pointer;
+        `;
 
         const percentage = (count / Math.max(1, responses_num)) * 100;
         option_elem.style.width = `${percentage * 0.9}%`;
