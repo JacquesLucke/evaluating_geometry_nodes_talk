@@ -5,27 +5,6 @@ let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 100;
 
-function main() {
-  setTimeout(async () => {
-    await polli_live_connection.init_session();
-  }, 0);
-
-  // Old responses are stored in local storage so that they are still available
-  // after a reload.
-  global_responses.load_from_local_storage();
-
-  all_polls.gather(document);
-  all_polls.initialize_all(global_responses);
-
-  Reveal.on("slidechanged", async function (event) {
-    polli_live_connection.stop_fetching_responses();
-    const poll = find_poll_on_current_slide();
-    if (poll) {
-      await start_poll(poll);
-    }
-  });
-}
-
 class SingleChoicePoll {
   static class_name = "poll-single-choice";
 
@@ -262,137 +241,6 @@ class SlidePoll {
   }
 }
 
-function create_join_elem() {
-  const join_elem = document.createElement("div");
-  join_elem.classList.add("join-poll");
-  join_elem.innerHTML = `
-  Join at <code>${polli_live_url_human}</code> with <code class="session-id"></code>
-  `;
-  join_elem.addEventListener("click", open_settings);
-  return join_elem;
-}
-
-function open_settings() {
-  const container_elem = document.createElement("div");
-  container_elem.classList.add("polli-settings-container");
-  container_elem.appendChild(make_settings_elem());
-
-  Swal.fire({
-    html: container_elem,
-    background: "rgb(59 59 59)",
-    confirmButtonText: "Close",
-  });
-}
-
-function make_settings_elem() {
-  const settings_elem = document.createElement("div");
-
-  const new_session_elem = document.createElement("button");
-  settings_elem.appendChild(new_session_elem);
-  new_session_elem.innerText = "New Session";
-  new_session_elem.addEventListener("click", async () => {
-    global_responses.clear();
-    global_responses.store_in_local_storage();
-    await polli_live_connection.make_new_session();
-  });
-
-  if (polli_live_connection.has_session) {
-    const qr_elem = document.createElement("div");
-    settings_elem.appendChild(qr_elem);
-    qr_elem.style.border = "1em solid transparent";
-    qr_elem.style.backgroundColor = "white";
-    qr_elem.style.borderRadius = "5px";
-    qr_elem.style.width = "fit-content";
-    qr_elem.style.height = "fit-content";
-    qr_elem.style.marginLeft = "auto";
-    qr_elem.style.marginRight = "auto";
-    qr_elem.style.marginTop = "1em";
-    const image = get_qr_code_image_data(
-      polli_live_connection.poll_link,
-      qrcode_size
-    );
-    update_qr_code_elem(qr_elem, image);
-
-    const link_elem = document.createElement("a");
-    settings_elem.appendChild(link_elem);
-    link_elem.classList.add("settings-poll-link");
-    link_elem.classList.add("join-poll");
-    link_elem.style.fontSize = "larger";
-    link_elem.href = polli_live_connection.poll_link;
-    link_elem.target = "_blank";
-    link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${polli_live_connection.session}</code>`;
-  } else {
-    const error_elem = document.createElement("div");
-    settings_elem.append(error_elem);
-    error_elem.style.color = "white";
-    error_elem.style.margin = "1em";
-    error_elem.innerText = "No active session.";
-  }
-
-  return settings_elem;
-}
-
-async function start_poll(poll) {
-  const page = await poll.get_poll_page();
-  await polli_live_connection.set_page(page);
-  polli_live_connection.start_fetching_responses();
-}
-
-function find_poll_on_current_slide() {
-  const current_slide = Reveal.getCurrentSlide();
-  return all_polls.by_parent(current_slide);
-}
-
-function update_poll_qr_codes() {
-  const elems = document.getElementsByClassName("polli-live-qr");
-  if (polli_live_connection.has_session) {
-    const image = get_qr_code_image_data(
-      polli_live_connection.poll_link,
-      qrcode_size
-    );
-    for (const qr_code_elem of elems) {
-      update_qr_code_elem(qr_code_elem, image);
-    }
-  } else {
-    for (const qr_code_elem of elems) {
-      qr_code_elem.innerHTML = "";
-    }
-  }
-}
-
-function update_qr_code_elem(qr_code_elem, image) {
-  qr_code_elem.innerHTML = "";
-  const canvas_elem = document.createElement("canvas");
-  canvas_elem.style.display = "block";
-  canvas_elem.width = qrcode_size;
-  canvas_elem.height = qrcode_size;
-  const ctx = canvas_elem.getContext("2d");
-  ctx.putImageData(image, 0, 0);
-  qr_code_elem.appendChild(canvas_elem);
-}
-
-function get_qr_code_image_data(text, size) {
-  const elem = document.createElement("div");
-  new QRCode(elem, {
-    text: text,
-    width: size,
-    height: size,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
-    correctionLevel: QRCode.CorrectLevel.L,
-  });
-  const canvas_elem = elem.children[0];
-  const ctx = canvas_elem.getContext("2d");
-  const image_data = ctx.getImageData(
-    0,
-    0,
-    canvas_elem.width,
-    canvas_elem.height
-  );
-  elem.remove();
-  return image_data;
-}
-
 class PollResponses {
   constructor(local_storage_key, is_valid_response_fn) {
     this.local_storage_key = local_storage_key;
@@ -431,7 +279,7 @@ class PollResponses {
     try {
       const responses = JSON.parse(storage_str);
       for (const { poll_id, user_id, data } of responses) {
-        this.add_response(poll_id, user_id, data);
+        this.try_add_response(poll_id, user_id, data);
       }
     } catch {}
   }
@@ -668,6 +516,159 @@ class PolliLiveConnection {
   }
 }
 
+function main() {
+  setTimeout(async () => {
+    await polli_live_connection.init_session();
+  }, 0);
+
+  all_polls.gather(document);
+
+  // Old responses are stored in local storage so that they are still available
+  // after a reload.
+  global_responses.load_from_local_storage();
+
+  all_polls.initialize_all(global_responses);
+
+  Reveal.on("slidechanged", async function (event) {
+    polli_live_connection.stop_fetching_responses();
+    const poll = find_poll_on_current_slide();
+    if (poll) {
+      await start_poll(poll);
+    }
+  });
+}
+
+function create_join_elem() {
+  const join_elem = document.createElement("div");
+  join_elem.classList.add("join-poll");
+  join_elem.innerHTML = `
+  Join at <code>${polli_live_url_human}</code> with <code class="session-id"></code>
+  `;
+  join_elem.addEventListener("click", open_settings);
+  return join_elem;
+}
+
+function open_settings() {
+  const container_elem = document.createElement("div");
+  container_elem.classList.add("polli-settings-container");
+  container_elem.appendChild(make_settings_elem());
+
+  Swal.fire({
+    html: container_elem,
+    background: "rgb(59 59 59)",
+    confirmButtonText: "Close",
+  });
+}
+
+function make_settings_elem() {
+  const settings_elem = document.createElement("div");
+
+  const new_session_elem = document.createElement("button");
+  settings_elem.appendChild(new_session_elem);
+  new_session_elem.innerText = "New Session";
+  new_session_elem.addEventListener("click", async () => {
+    global_responses.clear();
+    global_responses.store_in_local_storage();
+    await polli_live_connection.make_new_session();
+  });
+
+  if (polli_live_connection.has_session) {
+    const qr_elem = document.createElement("div");
+    settings_elem.appendChild(qr_elem);
+    qr_elem.style.border = "1em solid transparent";
+    qr_elem.style.backgroundColor = "white";
+    qr_elem.style.borderRadius = "5px";
+    qr_elem.style.width = "fit-content";
+    qr_elem.style.height = "fit-content";
+    qr_elem.style.marginLeft = "auto";
+    qr_elem.style.marginRight = "auto";
+    qr_elem.style.marginTop = "1em";
+    const image = get_qr_code_image_data(
+      polli_live_connection.poll_link,
+      qrcode_size
+    );
+    update_qr_code_elem(qr_elem, image);
+
+    const link_elem = document.createElement("a");
+    settings_elem.appendChild(link_elem);
+    link_elem.classList.add("settings-poll-link");
+    link_elem.classList.add("join-poll");
+    link_elem.style.fontSize = "larger";
+    link_elem.href = polli_live_connection.poll_link;
+    link_elem.target = "_blank";
+    link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${polli_live_connection.session}</code>`;
+  } else {
+    const error_elem = document.createElement("div");
+    settings_elem.append(error_elem);
+    error_elem.style.color = "white";
+    error_elem.style.margin = "1em";
+    error_elem.innerText = "No active session.";
+  }
+
+  return settings_elem;
+}
+
+async function start_poll(poll) {
+  const page = await poll.get_poll_page();
+  await polli_live_connection.set_page(page);
+  polli_live_connection.start_fetching_responses();
+}
+
+function find_poll_on_current_slide() {
+  const current_slide = Reveal.getCurrentSlide();
+  return all_polls.by_parent(current_slide);
+}
+
+function update_poll_qr_codes() {
+  const elems = document.getElementsByClassName("polli-live-qr");
+  if (polli_live_connection.has_session) {
+    const image = get_qr_code_image_data(
+      polli_live_connection.poll_link,
+      qrcode_size
+    );
+    for (const qr_code_elem of elems) {
+      update_qr_code_elem(qr_code_elem, image);
+    }
+  } else {
+    for (const qr_code_elem of elems) {
+      qr_code_elem.innerHTML = "";
+    }
+  }
+}
+
+function update_qr_code_elem(qr_code_elem, image) {
+  qr_code_elem.innerHTML = "";
+  const canvas_elem = document.createElement("canvas");
+  canvas_elem.style.display = "block";
+  canvas_elem.width = qrcode_size;
+  canvas_elem.height = qrcode_size;
+  const ctx = canvas_elem.getContext("2d");
+  ctx.putImageData(image, 0, 0);
+  qr_code_elem.appendChild(canvas_elem);
+}
+
+function get_qr_code_image_data(text, size) {
+  const elem = document.createElement("div");
+  new QRCode(elem, {
+    text: text,
+    width: size,
+    height: size,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctionLevel: QRCode.CorrectLevel.L,
+  });
+  const canvas_elem = elem.children[0];
+  const ctx = canvas_elem.getContext("2d");
+  const image_data = ctx.getImageData(
+    0,
+    0,
+    canvas_elem.width,
+    canvas_elem.height
+  );
+  elem.remove();
+  return image_data;
+}
+
 function polli_live_session_changed() {
   for (const session_id_elem of document.getElementsByClassName("session-id")) {
     if (polli_live_connection.has_session) {
@@ -694,6 +695,7 @@ function polli_live_session_changed() {
 }
 
 function polli_live_has_new_responses() {
+  global_responses.store_in_local_storage();
   const poll = find_poll_on_current_slide();
   if (poll) {
     poll.update_with_responses(global_responses.responses_for_poll(poll.id));
