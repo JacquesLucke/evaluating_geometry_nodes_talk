@@ -1,5 +1,6 @@
 let polli_live_url = "https://polli.live";
-// let polli_live_url = "http://192.168.0.15:8000";
+// let polli_live_url = "http://192.168.0.15:9000";
+let polli_live_url_human = "polli.live";
 let current_session = null;
 let next_response_id = 0;
 let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
@@ -42,7 +43,7 @@ async function prepare_session() {
   next_response_id = 0;
   try {
     let desired_session = localStorage.getItem("session");
-    const res = await fetch(`${polli_live_url}/init_session`, {
+    const res = await fetch(`${polli_live_url}/new`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -307,12 +308,10 @@ function create_join_elem() {
   const link = get_poll_link();
 
   const join_elem = document.createElement("div");
-  const link_elem = document.createElement("code");
-  link_elem.innerText = link ? link : "...";
-  link_elem.classList.add("join-link-elem");
   join_elem.classList.add("join-poll");
-  join_elem.appendChild(document.createTextNode("Join at "));
-  join_elem.appendChild(link_elem);
+  join_elem.innerHTML = `
+  Join at <code>${polli_live_url_human}</code> with <code class="session-id"></code>
+  `;
   join_elem.addEventListener("click", open_settings);
   return join_elem;
 }
@@ -360,19 +359,20 @@ function get_poll_by_id(id) {
 
 function session_updated() {
   const new_link = get_poll_link();
-  for (const link_elem of document.getElementsByClassName("join-link-elem")) {
-    if (new_link) {
-      link_elem.innerText = new_link;
-      if (link_elem.tagName === "a") {
-        link_elem.href = new_link;
-      }
+  for (const session_id_elem of document.getElementsByClassName("session-id")) {
+    if (current_session) {
+      session_id_elem.innerText = current_session.session;
     } else {
-      link_elem.innerText = "...";
-      if (link_elem.tagName === "a") {
-        link_elem.href = "";
-      }
+      session_id_elem.innerText = "...";
     }
   }
+  for (const settings_elem of document.getElementsByClassName(
+    "polli-settings-container"
+  )) {
+    settings_elem.innerHTML = "";
+    settings_elem.appendChild(make_settings_elem());
+  }
+
   update_poll_qr_codes();
   if (new_link) {
     const poll = find_poll_on_current_slide();
@@ -383,6 +383,18 @@ function session_updated() {
 }
 
 function open_settings() {
+  const container_elem = document.createElement("div");
+  container_elem.classList.add("polli-settings-container");
+  container_elem.appendChild(make_settings_elem());
+
+  Swal.fire({
+    html: container_elem,
+    background: "rgb(59 59 59)",
+    confirmButtonText: "Close",
+  });
+}
+
+function make_settings_elem() {
   const settings_elem = document.createElement("div");
 
   const new_session_elem = document.createElement("button");
@@ -406,13 +418,13 @@ function open_settings() {
     link_elem.href = poll_link;
     link_elem.target = "_blank";
     link_elem.innerText = poll_link;
+  } else {
+    const error_elem = document.createElement("div");
+    settings_elem.append(error_elem);
+    error_elem.innerText = "No active session.";
   }
 
-  Swal.fire({
-    html: settings_elem,
-    background: "rgb(59 59 59)",
-    confirmButtonText: "Close",
-  });
+  return settings_elem;
 }
 
 async function start_poll(poll) {
@@ -421,7 +433,7 @@ async function start_poll(poll) {
   }
 
   const page = await poll.get_poll_page();
-  await fetch(`${polli_live_url}/set_page?session=${current_session.session}`, {
+  await fetch(`${polli_live_url}/page?session=${current_session.session}`, {
     method: "POST",
     body: page,
     headers: {
@@ -541,7 +553,7 @@ function update_qr_code_elem(qr_code_elem, image) {
 
 function get_poll_link() {
   if (current_session) {
-    return `${polli_live_url}?session=${current_session.session}`;
+    return `${polli_live_url}/page?session=${current_session.session}`;
   }
   return null;
 }
@@ -596,6 +608,7 @@ async function on_new_session() {
   await make_new_session();
   responses_by_question_id = new Map();
   store_responses_in_local_storage();
+  session_updated();
 }
 
 function add_response_to_global_map(response) {
