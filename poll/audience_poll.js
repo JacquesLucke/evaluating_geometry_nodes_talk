@@ -133,6 +133,14 @@ const polli_live = (function () {
     return poll.is_valid_response(response_data);
   }
 
+  class FetchResponsesBadStatusCode extends Error {
+    constructor() {
+      super(
+        "Fetching responses failed with bad status code (not due to internet connection)"
+      );
+    }
+  }
+
   class PolliLiveConnection {
     constructor(
       url,
@@ -150,6 +158,7 @@ const polli_live = (function () {
       this.token = null;
       this.next_response = 0;
       this.should_fetch_responses = false;
+      this.last_set_page = null;
       this.#start_fetch_responses_loop();
     }
 
@@ -199,8 +208,9 @@ const polli_live = (function () {
     }
 
     async set_page(page) {
+      this.last_set_page = page;
       if (!this.session || !this.token) {
-        return;
+        return false;
       }
       try {
         const res = await fetch(`${this.url}/page?session=${this.session}`, {
@@ -211,10 +221,11 @@ const polli_live = (function () {
           },
         });
         if (res.ok) {
-          return;
+          return true;
         }
       } catch {}
       console.error(`Could not set poll page.`);
+      return false;
     }
 
     start_fetching_responses() {
@@ -226,7 +237,9 @@ const polli_live = (function () {
     }
 
     #start_fetch_responses_loop() {
+      this.last_fetch_loop_interval = globals.options.min_poll_interval_ms;
       const handler = async () => {
+        let use_interval_backoff = false;
         try {
           if (!this.session) {
             return;
@@ -234,11 +247,27 @@ const polli_live = (function () {
           if (!this.should_fetch_responses) {
             return;
           }
-          if (await this.#fetch_new_responses()) {
-            this.on_response_change();
+          try {
+            if (await this.#fetch_new_responses()) {
+              this.on_response_change();
+            }
+          } catch (err) {
+            use_interval_backoff = true;
+            if (err instanceof FetchResponsesBadStatusCode) {
+              if (this.last_set_page) {
+                if (await this.set_page(this.last_set_page)) {
+                  use_interval_backoff = false;
+                }
+              }
+            }
           }
         } finally {
-          setTimeout(handler, globals.options.min_poll_interval_ms);
+          let next_timeout = globals.options.min_poll_interval_ms;
+          if (use_interval_backoff) {
+            next_timeout = Math.min(10000, this.last_fetch_loop_interval * 2);
+          }
+          this.last_fetch_loop_interval = next_timeout;
+          setTimeout(handler, next_timeout);
         }
       };
 
@@ -250,27 +279,24 @@ const polli_live = (function () {
         return false;
       }
 
-      try {
-        let responses = await fetch(
-          `${this.url}/responses?session=${this.session}&start=${this.next_response}`
-        );
-        if (!responses.ok) {
-          return false;
-        }
-        responses = await responses.json();
-        this.next_response = responses.next_start;
+      let responses = await fetch(
+        `${this.url}/responses?session=${this.session}&start=${this.next_response}`
+      );
+      if (!responses.ok) {
+        throw new FetchResponsesBadStatusCode();
+      }
+      responses = await responses.json();
+      this.next_response = responses.next_start;
 
-        let found_new_responses = false;
-        for (const [user_id, response] of Object.entries(
-          responses.responses_by_user
-        )) {
-          const { poll_id, data } = JSON.parse(response);
-          this.responses.try_add_response(poll_id, user_id, data);
-          found_new_responses = true;
-        }
-        return found_new_responses;
-      } catch {}
-      return false;
+      let found_new_responses = false;
+      for (const [user_id, response] of Object.entries(
+        responses.responses_by_user
+      )) {
+        const { poll_id, data } = JSON.parse(response);
+        this.responses.try_add_response(poll_id, user_id, data);
+        found_new_responses = true;
+      }
+      return found_new_responses;
     }
   }
 
