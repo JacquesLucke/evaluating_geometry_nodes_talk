@@ -374,6 +374,9 @@ function session_updated() {
   }
 
   update_poll_qr_codes();
+  for (const poll of all_polls) {
+    update_poll_result(poll);
+  }
   if (new_link) {
     const poll = find_poll_on_current_slide();
     if (poll) {
@@ -407,7 +410,14 @@ function make_settings_elem() {
   if (poll_link) {
     const qr_elem = document.createElement("div");
     settings_elem.appendChild(qr_elem);
-    qr_elem.classList.add("poll-qr-code");
+    qr_elem.style.border = "1em solid transparent";
+    qr_elem.style.backgroundColor = "white";
+    qr_elem.style.borderRadius = "5px";
+    qr_elem.style.width = "fit-content";
+    qr_elem.style.height = "fit-content";
+    qr_elem.style.marginLeft = "auto";
+    qr_elem.style.marginRight = "auto";
+    qr_elem.style.marginTop = "1em";
     const image = get_qr_code_image_data(poll_link, qrcode_size);
     update_qr_code_elem(qr_elem, image);
 
@@ -529,7 +539,7 @@ async function update_poll_result(poll) {
 
 function update_poll_qr_codes() {
   const link = get_poll_link();
-  const elems = document.getElementsByClassName("poll-qr-code");
+  const elems = document.getElementsByClassName("polli-live-qr");
   if (link) {
     const image = get_qr_code_image_data(link, qrcode_size);
     for (const qr_code_elem of elems) {
@@ -545,6 +555,7 @@ function update_poll_qr_codes() {
 function update_qr_code_elem(qr_code_elem, image) {
   qr_code_elem.innerHTML = "";
   const canvas_elem = document.createElement("canvas");
+  canvas_elem.style.display = "block";
   canvas_elem.width = qrcode_size;
   canvas_elem.height = qrcode_size;
   const ctx = canvas_elem.getContext("2d");

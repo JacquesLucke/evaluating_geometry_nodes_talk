@@ -5,21 +5,6 @@
   color: black;
 }
 
-.poll-qr-code {
-  padding: 20px;
-  margin-top: 1em;
-  margin-left: auto;
-  margin-right: auto;
-  background-color: #ccc;
-  width: fit-content;
-  height: fit-content;
-  border-radius: 5px;
-}
-
-.poll-qr-code > canvas {
-  display: block;
-}
-
 .settings-poll-link {
   color: white;
   font-family: monospace;
