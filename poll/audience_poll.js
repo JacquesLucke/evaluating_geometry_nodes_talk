@@ -432,6 +432,8 @@ function make_settings_elem() {
   } else {
     const error_elem = document.createElement("div");
     settings_elem.append(error_elem);
+    error_elem.style.color = "white";
+    error_elem.style.margin = "1em";
     error_elem.innerText = "No active session.";
   }
 
