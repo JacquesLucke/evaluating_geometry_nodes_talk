@@ -1,6 +1,4 @@
 const polli_live = (function () {
-  let polli_live_url = "https://polli.live";
-  // let polli_live_url = "http://192.168.0.15:9000";
   let polli_live_url_human = "polli.live";
 
   const qrcode_size = 256;
@@ -370,7 +368,7 @@ const polli_live = (function () {
   }
 
   function response_is_valid(poll_id, response_data) {
-    const poll = all_polls.by_id(poll_id);
+    const poll = globals.polls.by_id(poll_id);
     if (!poll) {
       return false;
     }
@@ -518,21 +516,34 @@ const polli_live = (function () {
     }
   }
 
-  function main() {
+  function main(options) {
+    globals.polls = new Polls([SingleChoicePoll, SlidePoll]);
+    globals.responses = new PollResponses(
+      "polli_live_responses",
+      response_is_valid
+    );
+    globals.connection = new PolliLiveConnection(
+      options.server,
+      globals.responses,
+      "polli-live",
+      polli_live_session_changed,
+      polli_live_has_new_responses
+    );
+
     setTimeout(async () => {
-      await polli_live_connection.init_session();
+      await globals.connection.init_session();
     }, 0);
 
-    all_polls.gather(document);
+    globals.polls.gather(document);
 
     // Old responses are stored in local storage so that they are still available
     // after a reload.
-    global_responses.load_from_local_storage();
+    globals.responses.load_from_local_storage();
 
-    all_polls.initialize_all(global_responses);
+    globals.polls.initialize_all(globals.responses);
 
     Reveal.on("slidechanged", async function (event) {
-      polli_live_connection.stop_fetching_responses();
+      globals.connection.stop_fetching_responses();
       const poll = find_poll_on_current_slide();
       if (poll) {
         await start_poll(poll);
@@ -569,12 +580,12 @@ const polli_live = (function () {
     settings_elem.appendChild(new_session_elem);
     new_session_elem.innerText = "New Session";
     new_session_elem.addEventListener("click", async () => {
-      global_responses.clear();
-      global_responses.store_in_local_storage();
-      await polli_live_connection.make_new_session();
+      globals.responses.clear();
+      globals.responses.store_in_local_storage();
+      await globals.connection.make_new_session();
     });
 
-    if (polli_live_connection.has_session) {
+    if (globals.connection.has_session) {
       const qr_elem = document.createElement("div");
       settings_elem.appendChild(qr_elem);
       qr_elem.style.border = "1em solid transparent";
@@ -586,7 +597,7 @@ const polli_live = (function () {
       qr_elem.style.marginRight = "auto";
       qr_elem.style.marginTop = "1em";
       const image = get_qr_code_image_data(
-        polli_live_connection.poll_link,
+        globals.connection.poll_link,
         qrcode_size
       );
       update_qr_code_elem(qr_elem, image);
@@ -596,9 +607,9 @@ const polli_live = (function () {
       link_elem.classList.add("settings-poll-link");
       link_elem.classList.add("join-poll");
       link_elem.style.fontSize = "larger";
-      link_elem.href = polli_live_connection.poll_link;
+      link_elem.href = globals.connection.poll_link;
       link_elem.target = "_blank";
-      link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${polli_live_connection.session}</code>`;
+      link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${globals.connection.session}</code>`;
     } else {
       const error_elem = document.createElement("div");
       settings_elem.append(error_elem);
@@ -612,20 +623,20 @@ const polli_live = (function () {
 
   async function start_poll(poll) {
     const page = await poll.get_poll_page();
-    await polli_live_connection.set_page(page);
-    polli_live_connection.start_fetching_responses();
+    await globals.connection.set_page(page);
+    globals.connection.start_fetching_responses();
   }
 
   function find_poll_on_current_slide() {
     const current_slide = Reveal.getCurrentSlide();
-    return all_polls.by_parent(current_slide);
+    return globals.polls.by_parent(current_slide);
   }
 
   function update_poll_qr_codes() {
     const elems = document.getElementsByClassName("polli-live-qr");
-    if (polli_live_connection.has_session) {
+    if (globals.connection.has_session) {
       const image = get_qr_code_image_data(
-        polli_live_connection.poll_link,
+        globals.connection.poll_link,
         qrcode_size
       );
       for (const qr_code_elem of elems) {
@@ -675,8 +686,8 @@ const polli_live = (function () {
     for (const session_id_elem of document.getElementsByClassName(
       "session-id"
     )) {
-      if (polli_live_connection.has_session) {
-        session_id_elem.innerText = polli_live_connection.session;
+      if (globals.connection.has_session) {
+        session_id_elem.innerText = globals.connection.session;
       } else {
         session_id_elem.innerText = "...";
       }
@@ -689,8 +700,8 @@ const polli_live = (function () {
     }
 
     update_poll_qr_codes();
-    all_polls.update_all(global_responses);
-    if (polli_live_connection.has_session) {
+    globals.polls.update_all(globals.responses);
+    if (globals.connection.has_session) {
       const poll = find_poll_on_current_slide();
       if (poll) {
         start_poll(poll);
@@ -699,27 +710,14 @@ const polli_live = (function () {
   }
 
   function polli_live_has_new_responses() {
-    global_responses.store_in_local_storage();
+    globals.responses.store_in_local_storage();
     const poll = find_poll_on_current_slide();
     if (poll) {
-      poll.update_with_responses(global_responses.responses_for_poll(poll.id));
+      poll.update_with_responses(globals.responses.responses_for_poll(poll.id));
     }
   }
 
-  let all_polls = new Polls([SingleChoicePoll, SlidePoll]);
-
-  let global_responses = new PollResponses(
-    "polli_live_responses",
-    response_is_valid
-  );
-
-  let polli_live_connection = new PolliLiveConnection(
-    polli_live_url,
-    global_responses,
-    "polli-live",
-    polli_live_session_changed,
-    polli_live_has_new_responses
-  );
+  const globals = {};
 
   return {
     initialize: main,

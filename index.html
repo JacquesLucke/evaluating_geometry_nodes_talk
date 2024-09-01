@@ -114,7 +114,9 @@
         hash: true,
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
       });
-      polli_live.initialize();
+      polli_live.initialize({
+        server: "https://polli.live",
+      });
     </script>
   </body>
 </html>
