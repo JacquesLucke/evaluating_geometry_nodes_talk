@@ -263,8 +263,6 @@ class SlidePoll {
 }
 
 function create_join_elem() {
-  const link = get_poll_link();
-
   const join_elem = document.createElement("div");
   join_elem.classList.add("join-poll");
   join_elem.innerHTML = `
@@ -298,9 +296,7 @@ function make_settings_elem() {
     await polli_live_connection.make_new_session();
   });
 
-  const poll_link = get_poll_link();
-
-  if (poll_link) {
+  if (polli_live_connection.has_session) {
     const qr_elem = document.createElement("div");
     settings_elem.appendChild(qr_elem);
     qr_elem.style.border = "1em solid transparent";
@@ -311,7 +307,10 @@ function make_settings_elem() {
     qr_elem.style.marginLeft = "auto";
     qr_elem.style.marginRight = "auto";
     qr_elem.style.marginTop = "1em";
-    const image = get_qr_code_image_data(poll_link, qrcode_size);
+    const image = get_qr_code_image_data(
+      polli_live_connection.poll_link,
+      qrcode_size
+    );
     update_qr_code_elem(qr_elem, image);
 
     const link_elem = document.createElement("a");
@@ -319,7 +318,7 @@ function make_settings_elem() {
     link_elem.classList.add("settings-poll-link");
     link_elem.classList.add("join-poll");
     link_elem.style.fontSize = "larger";
-    link_elem.href = poll_link;
+    link_elem.href = polli_live_connection.poll_link;
     link_elem.target = "_blank";
     link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${polli_live_connection.session}</code>`;
   } else {
@@ -345,10 +344,12 @@ function find_poll_on_current_slide() {
 }
 
 function update_poll_qr_codes() {
-  const link = get_poll_link();
   const elems = document.getElementsByClassName("polli-live-qr");
-  if (link) {
-    const image = get_qr_code_image_data(link, qrcode_size);
+  if (polli_live_connection.has_session) {
+    const image = get_qr_code_image_data(
+      polli_live_connection.poll_link,
+      qrcode_size
+    );
     for (const qr_code_elem of elems) {
       update_qr_code_elem(qr_code_elem, image);
     }
@@ -368,13 +369,6 @@ function update_qr_code_elem(qr_code_elem, image) {
   const ctx = canvas_elem.getContext("2d");
   ctx.putImageData(image, 0, 0);
   qr_code_elem.appendChild(canvas_elem);
-}
-
-function get_poll_link() {
-  if (polli_live_connection.session) {
-    return `${polli_live_url}/page?session=${polli_live_connection.session}`;
-  }
-  return null;
 }
 
 function get_qr_code_image_data(text, size) {
@@ -553,6 +547,17 @@ class PolliLiveConnection {
     this.#start_fetch_responses_loop();
   }
 
+  get has_session() {
+    return this.session !== null;
+  }
+
+  get poll_link() {
+    if (this.session) {
+      return `${this.url}/page?session=${this.session}`;
+    }
+    return null;
+  }
+
   async init_session() {
     this.session = null;
     this.token = null;
@@ -664,9 +669,8 @@ class PolliLiveConnection {
 }
 
 function polli_live_session_changed() {
-  const new_link = get_poll_link();
   for (const session_id_elem of document.getElementsByClassName("session-id")) {
-    if (polli_live_connection.session) {
+    if (polli_live_connection.has_session) {
       session_id_elem.innerText = polli_live_connection.session;
     } else {
       session_id_elem.innerText = "...";
@@ -681,7 +685,7 @@ function polli_live_session_changed() {
 
   update_poll_qr_codes();
   all_polls.update_all(global_responses);
-  if (new_link) {
+  if (polli_live_connection.has_session) {
     const poll = find_poll_on_current_slide();
     if (poll) {
       start_poll(poll);
