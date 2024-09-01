@@ -68,7 +68,7 @@
     </div>
 
     <script>
-      let question_id = "QUESTION_ID";
+      let poll_id = "POLL_ID";
       const option_colors = "MULTIPLE_CHOICE_COLORS";
       // const option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
       const vote_container_elem = document.getElementById("vote-container");
@@ -76,9 +76,7 @@
       async function main() {
         const slider_elem = document.getElementById("slider");
         slider_elem.addEventListener("input", () => {
-          polli_live.respond(
-            JSON.stringify({ question_id, data: slider.value })
-          );
+          polli_live.respond(JSON.stringify({ poll_id, data: slider.value }));
         });
       }
 

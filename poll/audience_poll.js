@@ -7,7 +7,7 @@ let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 100;
 
-let responses_by_question_id = new Map();
+let responses_by_poll_id = new Map();
 
 function main() {
   setTimeout(async () => {
@@ -169,7 +169,7 @@ class SingleChoicePoll {
   async get_poll_page() {
     let page = await fetch("poll/choice_poll.template.html");
     page = await page.text();
-    page = page.replace("QUESTION_ID", this.id);
+    page = page.replace("POLL_ID", this.id);
     page = page.replace(
       '"MULTIPLE_CHOICE_OPTIONS"',
       JSON.stringify(this.options)
@@ -293,7 +293,7 @@ class SlidePoll {
   async get_poll_page() {
     let page = await fetch("poll/slide_poll.template.html");
     page = await page.text();
-    page = page.replace("QUESTION_ID", this.id);
+    page = page.replace("POLL_ID", this.id);
     return page;
   }
 
@@ -515,8 +515,8 @@ async function retrieve_new_poll_responses() {
   for (const [user_id, response] of Object.entries(
     responses.responses_by_user
   )) {
-    const { question_id, data } = JSON.parse(response);
-    const poll = get_poll_by_id(question_id);
+    const { poll_id, data } = JSON.parse(response);
+    const poll = get_poll_by_id(poll_id);
     if (!poll) {
       continue;
     }
@@ -526,13 +526,13 @@ async function retrieve_new_poll_responses() {
     if (!poll.is_valid_resonse(data)) {
       continue;
     }
-    add_response_to_global_map({ question_id, user_id, data });
+    add_response_to_global_map({ poll_id, user_id, data });
   }
   store_responses_in_local_storage();
 }
 
 async function update_poll_result(poll) {
-  const question_responses = responses_by_question_id.get(poll.id);
+  const question_responses = responses_by_poll_id.get(poll.id);
   const responses_by_user = question_responses
     ? question_responses.response_by_user
     : new Map();
@@ -608,11 +608,11 @@ function load_responses_from_local_storage() {
 function store_responses_in_local_storage() {
   responses = [];
   for (const [
-    question_id,
+    poll_id,
     { response_by_user },
-  ] of responses_by_question_id.entries()) {
+  ] of responses_by_poll_id.entries()) {
     for (const [user_id, response_data] of response_by_user.entries()) {
-      responses.push({ question_id, user_id, data: response_data });
+      responses.push({ poll_id, user_id, data: response_data });
     }
   }
   localStorage.setItem("all_responses", JSON.stringify(responses));
@@ -620,27 +620,27 @@ function store_responses_in_local_storage() {
 
 async function on_new_session() {
   await make_new_session();
-  responses_by_question_id = new Map();
+  responses_by_poll_id = new Map();
   store_responses_in_local_storage();
   session_updated();
 }
 
 function add_response_to_global_map(response) {
-  const question_id = response.question_id;
+  const poll_id = response.poll_id;
   const user_id = response.user_id;
   const response_data = response.data;
 
-  if (!question_id || !user_id || !response_data) {
+  if (!poll_id || !user_id || !response_data) {
     return;
   }
 
-  if (!responses_by_question_id.has(question_id)) {
-    responses_by_question_id.set(question_id, {
+  if (!responses_by_poll_id.has(poll_id)) {
+    responses_by_poll_id.set(poll_id, {
       response_by_user: new Map(),
     });
   }
 
-  const question_responses = responses_by_question_id.get(question_id);
+  const question_responses = responses_by_poll_id.get(poll_id);
   question_responses.response_by_user.set(user_id, response_data);
 }
 

@@ -90,7 +90,7 @@
     </div>
 
     <script>
-      let question_id = "QUESTION_ID";
+      let poll_id = "POLL_ID";
       let multiple_choice_options = "MULTIPLE_CHOICE_OPTIONS";
       // multiple_choice_options = ["Artist", "Developer", "Teacher", "Other"];
 
@@ -121,7 +121,7 @@
           elem.classList.remove("selected");
         }
         selected_option_elem.classList.add("selected");
-        polli_live.respond(JSON.stringify({ question_id, data: option }));
+        polli_live.respond(JSON.stringify({ poll_id, data: option }));
       }
 
       document.getElementById("next-button").addEventListener("click", () => {
