@@ -7,8 +7,6 @@ let option_colors = ["#67B8DB", "#DB7873", "#9CDB67", "#DBA667"];
 const qrcode_size = 256;
 const poll_interval_ms = 100;
 
-let responses_by_poll_id = new Map();
-
 function main() {
   setTimeout(async () => {
     await prepare_session();
@@ -17,7 +15,7 @@ function main() {
 
   // Old responses are stored in local storage so that they are still available
   // after a reload.
-  load_responses_from_local_storage();
+  global_responses.load_from_local_storage();
 
   all_polls = initialize_poll_instances();
   for (const poll of all_polls) {
@@ -181,7 +179,7 @@ class SingleChoicePoll {
     return page;
   }
 
-  is_valid_resonse(response) {
+  is_valid_response(response) {
     return this.options.includes(response);
   }
 }
@@ -297,7 +295,7 @@ class SlidePoll {
     return page;
   }
 
-  is_valid_resonse(response) {
+  is_valid_response(response) {
     return true;
   }
 }
@@ -516,27 +514,13 @@ async function retrieve_new_poll_responses() {
     responses.responses_by_user
   )) {
     const { poll_id, data } = JSON.parse(response);
-    const poll = get_poll_by_id(poll_id);
-    if (!poll) {
-      continue;
-    }
-    if (!data) {
-      continue;
-    }
-    if (!poll.is_valid_resonse(data)) {
-      continue;
-    }
-    add_response_to_global_map({ poll_id, user_id, data });
+    global_responses.try_add_response(poll_id, user_id, data);
   }
-  store_responses_in_local_storage();
+  global_responses.store_in_local_storage();
 }
 
 async function update_poll_result(poll) {
-  const question_responses = responses_by_poll_id.get(poll.id);
-  const responses_by_user = question_responses
-    ? question_responses.response_by_user
-    : new Map();
-  poll.update_with_responses(responses_by_user);
+  poll.update_with_responses(global_responses.responses_for_poll(poll.id));
 }
 
 function update_poll_qr_codes() {
@@ -594,57 +578,92 @@ function get_qr_code_image_data(text, size) {
   return image_data;
 }
 
-function load_responses_from_local_storage() {
-  let all_responses = localStorage.getItem("all_responses");
-  if (!all_responses) {
-    return;
-  }
-  all_responses = JSON.parse(all_responses);
-  for (const response of all_responses) {
-    add_response_to_global_map(response);
-  }
-}
-
-function store_responses_in_local_storage() {
-  responses = [];
-  for (const [
-    poll_id,
-    { response_by_user },
-  ] of responses_by_poll_id.entries()) {
-    for (const [user_id, response_data] of response_by_user.entries()) {
-      responses.push({ poll_id, user_id, data: response_data });
-    }
-  }
-  localStorage.setItem("all_responses", JSON.stringify(responses));
-}
-
 async function on_new_session() {
   await make_new_session();
-  responses_by_poll_id = new Map();
-  store_responses_in_local_storage();
+  global_responses.clear();
+  global_responses.store_in_local_storage();
   session_updated();
 }
 
-function add_response_to_global_map(response) {
-  const poll_id = response.poll_id;
-  const user_id = response.user_id;
-  const response_data = response.data;
-
-  if (!poll_id || !user_id || !response_data) {
-    return;
+class PollResponses {
+  constructor(local_storage_key, is_valid_response_fn) {
+    this.local_storage_key = local_storage_key;
+    this.is_valid_response_fn = is_valid_response_fn;
+    this.responses_by_poll_id = new Map();
   }
 
-  if (!responses_by_poll_id.has(poll_id)) {
-    responses_by_poll_id.set(poll_id, {
-      response_by_user: new Map(),
-    });
+  clear() {
+    this.responses_by_poll_id.clear();
   }
 
-  const question_responses = responses_by_poll_id.get(poll_id);
-  question_responses.response_by_user.set(user_id, response_data);
+  store_in_local_storage() {
+    localStorage.setItem(this.local_storage_key, this.to_storage_string());
+  }
+
+  load_from_local_storage() {
+    this.try_add_from_storage_string(
+      localStorage.getItem(this.local_storage_key)
+    );
+  }
+
+  to_storage_string() {
+    const responses = [];
+    for (const [
+      poll_id,
+      responses_by_user,
+    ] of this.responses_by_poll_id.entries()) {
+      for (const [user_id, data] of responses_by_user.entries()) {
+        responses.push({ poll_id, user_id, data });
+      }
+    }
+    return JSON.stringify(responses);
+  }
+
+  try_add_from_storage_string(storage_str) {
+    try {
+      const responses = JSON.parse(storage_str);
+      for (const { poll_id, user_id, data } of responses) {
+        this.add_response(poll_id, user_id, data);
+      }
+    } catch {}
+  }
+
+  try_add_response(poll_id, user_id, data) {
+    if (!poll_id || !user_id || !data) {
+      return;
+    }
+    if (!this.is_valid_response_fn(poll_id, data)) {
+      return;
+    }
+    if (!this.responses_by_poll_id.has(poll_id)) {
+      this.responses_by_poll_id.set(poll_id, new Map());
+    }
+    this.responses_by_poll_id.get(poll_id).set(user_id, data);
+  }
+
+  responses_for_poll(poll_id) {
+    const responses = this.responses_by_poll_id.get(poll_id);
+    if (responses) {
+      return responses;
+    }
+    return new Map();
+  }
+}
+
+function response_is_valid(poll_id, response_data) {
+  const poll = get_poll_by_id(poll_id);
+  if (!poll) {
+    return false;
+  }
+  return poll.is_valid_response(response_data);
 }
 
 let do_poll_results = { active: false };
 let all_polls = undefined;
+
+let global_responses = new PollResponses(
+  "polli_live_responses",
+  response_is_valid
+);
 
 main();
