@@ -17,18 +17,15 @@ function main() {
   // after a reload.
   global_responses.load_from_local_storage();
 
-  all_polls = initialize_poll_instances();
-  for (const poll of all_polls) {
-    poll.initialize();
-    update_poll_result(poll);
-  }
+  all_polls.gather(document);
+  all_polls.initialize_all(global_responses);
 
   start_poll_results_loop();
 
   Reveal.on("slidechanged", async function (event) {
     stop_getting_poll_results();
     const current_slide = event.currentSlide;
-    const poll = find_poll_on_slide(current_slide);
+    const poll = all_polls.by_parent(current_slide);
     if (!poll) {
       return;
     }
@@ -300,7 +297,7 @@ class SlidePoll {
   }
 }
 
-const poll_types = [SingleChoicePoll, SlidePoll];
+const all_poll_types = [SingleChoicePoll, SlidePoll];
 
 function create_join_elem() {
   const link = get_poll_link();
@@ -312,47 +309,6 @@ function create_join_elem() {
   `;
   join_elem.addEventListener("click", open_settings);
   return join_elem;
-}
-
-function initialize_poll_instances() {
-  const polls = [];
-  for (const poll_type of poll_types) {
-    for (const poll_container of document.getElementsByClassName(
-      poll_type.class_name
-    )) {
-      polls.push(new poll_type(poll_container));
-    }
-  }
-  return polls;
-}
-
-function find_poll_on_slide(slide) {
-  for (const poll_type of poll_types) {
-    for (const poll_container of slide.getElementsByClassName(
-      poll_type.class_name
-    )) {
-      return get_poll_by_container(poll_container);
-    }
-  }
-  return null;
-}
-
-function get_poll_by_container(container) {
-  for (const poll of all_polls) {
-    if (poll.container === container) {
-      return poll;
-    }
-  }
-  return null;
-}
-
-function get_poll_by_id(id) {
-  for (const poll of all_polls) {
-    if (poll.id === id) {
-      return poll;
-    }
-  }
-  return null;
 }
 
 function session_updated() {
@@ -372,9 +328,7 @@ function session_updated() {
   }
 
   update_poll_qr_codes();
-  for (const poll of all_polls) {
-    update_poll_result(poll);
-  }
+  all_polls.update_all(global_responses);
   if (new_link) {
     const poll = find_poll_on_current_slide();
     if (poll) {
@@ -488,7 +442,7 @@ function update_poll_results_on_current_slide() {
 
 function find_poll_on_current_slide() {
   const current_slide = Reveal.getCurrentSlide();
-  return find_poll_on_slide(current_slide);
+  return all_polls.by_parent(current_slide);
 }
 
 async function retrieve_new_poll_responses() {
@@ -650,8 +604,69 @@ class PollResponses {
   }
 }
 
+class Polls {
+  constructor(poll_types) {
+    this.poll_types = poll_types;
+    this.polls = [];
+  }
+
+  gather(root_elem) {
+    for (const poll_type of this.poll_types) {
+      for (const poll_container of root_elem.getElementsByClassName(
+        poll_type.class_name
+      )) {
+        this.polls.push(new poll_type(poll_container));
+      }
+    }
+  }
+
+  initialize_all(responses) {
+    for (const poll of this.polls) {
+      poll.initialize();
+    }
+    this.update_all(responses);
+  }
+
+  update_all(responses) {
+    for (const poll of this.polls) {
+      poll.update_with_responses(responses.responses_for_poll(poll.id));
+    }
+  }
+
+  update(poll, responses) {}
+
+  by_container(poll_container) {
+    for (const poll of this.polls) {
+      if (poll.container === poll_container) {
+        return poll;
+      }
+    }
+    return null;
+  }
+
+  by_id(poll_id) {
+    for (const poll of this.polls) {
+      if (poll.id === poll_id) {
+        return poll;
+      }
+    }
+    return null;
+  }
+
+  by_parent(parent_elem) {
+    for (const poll_type of all_poll_types) {
+      for (const poll_container of parent_elem.getElementsByClassName(
+        poll_type.class_name
+      )) {
+        return this.by_container(poll_container);
+      }
+    }
+    return null;
+  }
+}
+
 function response_is_valid(poll_id, response_data) {
-  const poll = get_poll_by_id(poll_id);
+  const poll = all_polls.by_id(poll_id);
   if (!poll) {
     return false;
   }
@@ -659,7 +674,7 @@ function response_is_valid(poll_id, response_data) {
 }
 
 let do_poll_results = { active: false };
-let all_polls = undefined;
+let all_polls = new Polls([SingleChoicePoll, SlidePoll]);
 
 let global_responses = new PollResponses(
   "polli_live_responses",
