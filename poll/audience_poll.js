@@ -1,6 +1,4 @@
 const polli_live = (function () {
-  let polli_live_url_human = "polli.live";
-
   const qrcode_size = 256;
   const poll_interval_ms = 100;
 
@@ -529,6 +527,9 @@ const polli_live = (function () {
       polli_live_session_changed,
       polli_live_has_new_responses
     );
+    globals.host = options.server
+      .replace("http://", "")
+      .replace("https://", "");
 
     setTimeout(async () => {
       await globals.connection.init_session();
@@ -555,7 +556,7 @@ const polli_live = (function () {
     const join_elem = document.createElement("div");
     join_elem.classList.add("join-poll");
     join_elem.innerHTML = `
-  Join at <code>${polli_live_url_human}</code> with <code class="session-id"></code>
+  Join at <code>${globals.host}</code> with <code class="session-id"></code>
   `;
     join_elem.addEventListener("click", open_settings);
     return join_elem;
@@ -609,7 +610,7 @@ const polli_live = (function () {
       link_elem.style.fontSize = "larger";
       link_elem.href = globals.connection.poll_link;
       link_elem.target = "_blank";
-      link_elem.innerHTML = `<code>${polli_live_url_human}</code> with <code class="session-id">${globals.connection.session}</code>`;
+      link_elem.innerHTML = `<code>${globals.host}</code> with <code class="session-id">${globals.connection.session}</code>`;
     } else {
       const error_elem = document.createElement("div");
       settings_elem.append(error_elem);
