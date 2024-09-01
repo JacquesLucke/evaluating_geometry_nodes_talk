@@ -1,7 +1,4 @@
 const polli_live = (function () {
-  const qrcode_size = 256;
-  const poll_interval_ms = 100;
-
   class SingleChoicePoll {
     static class_name = "poll-single-choice";
 
@@ -478,7 +475,7 @@ const polli_live = (function () {
             this.on_response_change();
           }
         } finally {
-          setTimeout(handler, poll_interval_ms);
+          setTimeout(handler, globals.options.min_poll_interval_ms);
         }
       };
 
@@ -515,6 +512,14 @@ const polli_live = (function () {
   }
 
   function main(options) {
+    options = {
+      server: "https://polli.live",
+      min_poll_interval_ms: 100,
+      qr_code_size: 256,
+      ...options,
+    };
+
+    globals.options = options;
     globals.polls = new Polls([SingleChoicePoll, SlidePoll]);
     globals.responses = new PollResponses(
       "polli_live_responses",
@@ -599,7 +604,7 @@ const polli_live = (function () {
       qr_elem.style.marginTop = "1em";
       const image = get_qr_code_image_data(
         globals.connection.poll_link,
-        qrcode_size
+        globals.options.qr_code_size
       );
       update_qr_code_elem(qr_elem, image);
 
@@ -638,7 +643,7 @@ const polli_live = (function () {
     if (globals.connection.has_session) {
       const image = get_qr_code_image_data(
         globals.connection.poll_link,
-        qrcode_size
+        globals.options.qr_code_size
       );
       for (const qr_code_elem of elems) {
         update_qr_code_elem(qr_code_elem, image);
@@ -654,8 +659,8 @@ const polli_live = (function () {
     qr_code_elem.innerHTML = "";
     const canvas_elem = document.createElement("canvas");
     canvas_elem.style.display = "block";
-    canvas_elem.width = qrcode_size;
-    canvas_elem.height = qrcode_size;
+    canvas_elem.width = globals.options.qr_code_size;
+    canvas_elem.height = globals.options.qr_code_size;
     const ctx = canvas_elem.getContext("2d");
     ctx.putImageData(image, 0, 0);
     qr_code_elem.appendChild(canvas_elem);
