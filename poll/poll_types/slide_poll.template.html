@@ -74,6 +74,8 @@
       const vote_container_elem = document.getElementById("vote-container");
 
       async function main() {
+        polli_live.auto_reload();
+
         const slider_elem = document.getElementById("slider");
         slider_elem.addEventListener("input", () => {
           polli_live.respond(JSON.stringify({ poll_id, data: slider.value }));

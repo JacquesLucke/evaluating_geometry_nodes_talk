@@ -119,7 +119,7 @@ const polli_live_plugin_single_choice = (function () {
     }
 
     async get_poll_page() {
-      let page = await fetch("poll/choice_poll.template.html");
+      let page = await fetch("poll/poll_types/choice_poll.template.html");
       page = await page.text();
       page = page.replace("POLL_ID", this.id);
       page = page.replace(

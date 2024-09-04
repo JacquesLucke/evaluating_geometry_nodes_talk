@@ -104,7 +104,7 @@ const polli_live_plugin_slide = (function () {
     }
 
     async get_poll_page() {
-      let page = await fetch("poll/slide_poll.template.html");
+      let page = await fetch("poll/poll_types/slide_poll.template.html");
       page = await page.text();
       page = page.replace("POLL_ID", this.id);
       return page;

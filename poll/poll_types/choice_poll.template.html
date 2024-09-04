@@ -99,6 +99,8 @@
       const vote_container_elem = document.getElementById("vote-container");
 
       async function main() {
+        polli_live.auto_reload();
+
         vote_container_elem.classList.add(
           `vote-container-${multiple_choice_options.length}`
         );
