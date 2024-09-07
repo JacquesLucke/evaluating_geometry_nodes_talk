@@ -307,6 +307,8 @@
               * Thanks to the design of lazy-functions that just works and behaves pretty much exactly the same
                 as if everything was inlined with respect to lazyness.
               * We could still optionally inline some node groups, but for now that hasn't really been worth it.
+            * Repeat zones are also just a dynamically generated lazy-function graph. This also allows for parallelism
+              across iterations.
           </aside>
         </section>
         <section>
@@ -373,6 +375,47 @@
         </section>
         <section>
           <h2>Vectorization</h2>
+        </section>
+        <section>
+          <h2>Index Mask</h2>
+        </section>
+        <section>
+          <h2>Key Takeaway</h2>
+          <ul>
+            <li>Optimize for optimizeability</li>
+            <li>Consider lazyness early on</li>
+          </ul>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * There are of course many things one needs to keep in mind when building evaluation systems.
+              * Caching, threading, vectorization, benchmarking, scheduling, ...
+            * Here are some tips that I haven't heard as often yet:
+              * Optimize for optimizeability:
+                * You can't optimize everything from the beginning.
+                * Also you don't know which parts are important to optimize yet.
+                * Optimize for a smooth profile flame graph (todo: show example) with small functions at the top.
+                * This makes it easy to find bottlenecks and also to address them.
+              * Consider lazyness early on
+                * Lazyness allows skipping unnecessary work.
+                * Retrofitting it into an existing evaluation system is hard because it usually fundamentally changes
+                  how it has to work.
+                * Avoiding work will always be faster than doing it efficiently.
+          </aside>
+        </section>
+        <section>
+          <h2>Next Steps</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Refactor field evaluation to be less stupid. The code has barely changed from the initial implementation
+              when we introduced fields. There are some obvious bottleneck with non-trivial fields.
+            * Socket value cache across depsgraph evaluations. This is quite tricky because there is not much information
+              about what changed exactly since the last time.
+            * GPU acceleration. This is most tricky because we're not the "end of the pipeline" generally like a renderer
+              or compositor is. The output of geometry nodes is often still needed on the CPU. Choosing which parts should
+              be on the GPU and which not is hard. Furthermore, this also introduces new complexity with respect to
+              scheduling because the GPU works asynchronously, but I'm fairly confident that the lazy-function system
+              can be adapted to support this.
+          </aside>
         </section>
       </div>
     </div>
