@@ -261,10 +261,12 @@
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Input vs. output lazyness.
-            * Introduction to `LazyFunction`.
             * Show switch node example.
             * Compare to visibility pass in depsgraph.
           </aside>
+        </section>
+        <section>
+          <h2>Lazy-Function API</h2>
         </section>
         <section>
           <h2>Multi-Threading</h2>
@@ -306,6 +308,71 @@
                 as if everything was inlined with respect to lazyness.
               * We could still optionally inline some node groups, but for now that hasn't really been worth it.
           </aside>
+        </section>
+        <section>
+          <h2>Evaluating Math</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Show example of simple math evaluation node tree.
+            * Problem statement:
+              * We have a graph of math operations.
+              * We have some input arrays (`VArray`).
+              * Want to know the output values.
+          </aside>
+        </section>
+        <section>
+          <h2>Latency vs. Throughput</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Latency: "How long it takes to evaluate a single value".
+            * Throughput: "How many elements can be processed per time" or "average time per element".
+            * Demonstrate how they are not the same with an example.
+            * Use cases for each:
+              * Latency: drivers, serial loops
+              * Throughput: large amounts of data
+          </aside>
+        </section>
+        <section>
+          <h2>Just-in-Time Compilation?</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Allows generating optimal machine code for the target architecture.
+            * Compilation itself takes time which is a deal-breaker for this to be the only evaluation method.
+              * Having to wait seconds until things are compiled is just not acceptable.
+              * Geometry nodes should be expected to be ready "instantly".
+              * Having to wait for shader compilation for e.g. EEVEE is already bad enough.
+            * Much harder to debug.
+            * Much harder to profile to find bottlenecks.
+            * Can still be tricky to integrate partially precompiled and dynamically compiled code.
+            * There are still situations where a JIT can help but currently those are rarely a bottleneck.
+          </aside>
+        </section>
+        <section>
+          <h2>Virtual Array</h2>
+        </section>
+        <section>
+          <h2>Multi-Function API</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Optimized for optimizeability! Aka, keep hot loops small and make sure they show up in profiles.
+          </aside>
+        </section>
+        <section>
+          <h2>Multi-Function Builder Utils</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Simple way to create a multi-function for a lambda.
+            * Optimize code generation.
+          </aside>
+        </section>
+        <section>
+          <h2>Binary Size vs. Performance trade-off</h2>
+        </section>
+        <section>
+          <h2>Threading and Caching</h2>
+        </section>
+        <section>
+          <h2>Vectorization</h2>
         </section>
       </div>
     </div>
