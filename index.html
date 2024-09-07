@@ -130,7 +130,7 @@
           <aside class="notes" data-markdown>
             * Both are problems.
             * Dependency cycles are always a problem though, and not specific to this evaluation approach.
-              * Ideally, we could just enforce that the use has to fix the file in case of dependency cycles.
+              * Ideally, we could just enforce that the user has to fix the file in case of dependency cycles.
                 In practice that does not really work unfortunately.
               * There are many production files that kind of work even though they have dependency cycles.
                 We don't want to break them all.
@@ -187,6 +187,7 @@
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Explain how simple recursive evaluation can work.
+            * To understand recursion, you first have to understand recursion.
           </aside>
         </section>
         <section>
@@ -204,11 +205,11 @@
           <aside class="notes" data-markdown>
             * [ ] Support multiple choice.
             * Duplicate evaluation is big problem here, but it's fortunately fairly straight forward to solve
-              with a cache for socket values.
+              with a temporary cache for socket values.
               * Does introduce a new problem though because there is no mechanism to free parts of the cache
                 when it's no longer needed yet. So a simple cache would quickly require huge mount of RAM.
               * This recursive algorithm with a slightly more complex solution to avoid duplicate evaluation
-                was actually the initial evaluator that geometry nodes has when it was first released.
+                was actually the initial evaluator that geometry nodes had when it was first released.
             * Chains of nodes are a real problem as well. Each node in a chain adds a nested function call.
               * This can quickly lead to a stack-overflow with just a few hundred nodes, which many people
                 ran into back then.
