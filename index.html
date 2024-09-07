@@ -71,17 +71,11 @@
             <option>Both</option>
             <option>Technical</option>
           </div>
-        </section>
-        <section>
-          Where in the main loop are we?
-          <pre><code data-trim data-line-numbers="4">
-            while (true) {
-              wm_window_events_process(C);
-              wm_event_do_handlers(C);
-              wm_event_do_notifiers(C);
-              wm_draw_update(C);
-            }
-          </code></pre>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Nice to know what kind of people are here.
+            * "Both" is of course best.
+          </aside>
         </section>
         <section>
           <h2>The Dependency Graph!?</h2>
@@ -90,11 +84,229 @@
             <option>I kind of know it.</option>
             <option>I can explain it!</option>
           </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Start with the depsgraph to give some context of where we are in
+            the evaluation.
+            * It's also a node graph that needs to be evaluated.
+            * Learning how it works there can help to explain some concepts used
+            later on:
+              * Task group.
+              * Pull vs. push based evaluation.
+          </aside>
         </section>
-        <section><h2>Depsgraph Structure</h2></section>
-        <section><h2>Depsgraph Evaluation</h2></section>
-        <section><h2>Limitations</h2></section>
-        <section><h2>Geometry Nodes</h2></section>
+        <section>
+          <h2>Depsgraph Structure</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * [ ] Add image that shows a graph with three objects and their copy-on-eval, transform and geometry components.
+            * Explain how the graph is build, and how it generally works.
+          </aside>
+        </section>
+        <section>
+          <h2>Depsgraph Evaluation</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Steps in the evaluation:
+              * Tagging of modified nodes.
+              * Flushing of dependent nodes.
+              * Find start nodes.
+              * Use task group.
+              * When task is done, reduce reference counts of next nodes and schedule the ones whose dependencies are all done.
+          </aside>
+        </section>
+        <section>
+          <h2>What's a problem with this approach?</h2>
+          <div
+            class="poll-single-choice"
+            id="simple-depsgraph-eval-problems"
+            data-hide-result
+          >
+            <option>Dependency Cycles</option>
+            <option>Animated Visibility</option>
+            <option>Both</option>
+          </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Both are problems.
+            * Dependency cycles are always a problem though, and not specific to this evaluation approach.
+              * Ideally, we could just enforce that the use has to fix the file in case of dependency cycles.
+                In practice that does not really work unfortunately.
+              * There are many production files that kind of work even though they have dependency cycles.
+                We don't want to break them all.
+              * Sometimes there are dependency cycles in the depsgraph, even when there technically shouldn't be.
+                That can happen because the depsgraph is not fine-grained enough.
+              * In node systems, cycles are much more obvious fortunately and it's ok that the user has to
+                fix them to make things work again.
+            * Animated visibility is a more complex problem though.
+          </aside>
+        </section>
+        <section>
+          <h2>Animated Visibility</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * [ ] Add an example for animated/driven visibility.
+            * The problem is that to determine whether an object is visible, part of the depsgraph has to be evaluated first.
+            * However, the push based approach requires that we know what has to be evaluated before we start evaluating.
+            * The solution for the depsgraph is currently to evaluate in passes.
+              * First evaluate everything that is required to determine visibility of all the objects with animated/driven visibility.
+              * Then check again which depsgraph nodes have to be evaluated and evaluate those.
+              * (Technically, there are 4 passes, one more for `COPY_ON_EVAL` and one for single threaded operations.)
+            * This approach does handle the most common cases but is not very generic and does not handle other situations:
+              * Objects are conditionally used by other objects even if they are not visible directly.
+            * We'll later see how this is solved more generically in geometry nodes.
+              * Unfortunately, the requirements are a bit different there so that the solution can not be easily applied
+                to the depsgraph.
+          </aside>
+        </section>
+        <section>
+          <h2>Geometry Nodes in the Depsgraph</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Everything we will discuss going forward will happen in one of the geometry evaluation nodes of the depsgraph.
+            * That comes with certain limitations.
+              * There is no way to conditionally request inputs from the depsgraph currently. That's something
+                we'll have to figure out in the future.
+          </aside>
+        </section>
+        <section>
+          <h2>Pull vs. Push</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * [ ] Add image of simple geometry nodes graph.
+            * We're finally getting into geometry nodes now.
+            * The biggest change compared to the depsgraph is that it is fundamentall pull-based instead of push-based.
+            * That means instead starting evaluation at the input nodes, it starts at the output node.
+              * Each node recursively schedules its dependencies.
+              * Once dependencies are evaluated, the node itself runs.
+              * Then it pushes the results to the next nodes again.
+          </aside>
+        </section>
+        <section>
+          <h2>Recursive Evaluation</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Explain how simple recursive evaluation can work.
+          </aside>
+        </section>
+        <section>
+          <h2>Problems</h2>
+          <div
+            class="poll-single-choice"
+            id="simple-recursive-eval-problems"
+            data-hide-result
+          >
+            <option>Duplicate Evaluation</option>
+            <option>Chains of Nodes</option>
+            <option>Node Groups</option>
+          </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * [ ] Support multiple choice.
+            * Duplicate evaluation is big problem here, but it's fortunately fairly straight forward to solve
+              with a cache for socket values.
+              * Does introduce a new problem though because there is no mechanism to free parts of the cache
+                when it's no longer needed yet. So a simple cache would quickly require huge mount of RAM.
+              * This recursive algorithm with a slightly more complex solution to avoid duplicate evaluation
+                was actually the initial evaluator that geometry nodes has when it was first released.
+            * Chains of nodes are a real problem as well. Each node in a chain adds a nested function call.
+              * This can quickly lead to a stack-overflow with just a few hundred nodes, which many people
+                ran into back then.
+              * Later versions of the evaluator don't use recursion for every node anymore. So that's not
+                really a problem nowadays for geometry nodes.
+            * Node groups work fine in this initial version, but only because there was some extra code that
+              essentially inlines all node groups into a single tree. Let's talk about that more.
+          </aside>
+        </section>
+        <section>
+          <h2>Node Groups</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * [ ] Add image for inlined node groups.
+            * There are two main ways to deal with node groups.
+              * Inline everything into a single tree for evaluation.
+              * Keep groups separate and deal with them in the evaluator.
+            * Inlining groups:
+              * Generally nice because it keeps the evaluator simpler.
+              * This approach is used by original geometry nodes, shader and compositor nodes.
+              * It does come with significant limitations though.
+            * Keep groups:
+              * Much better suited once node groups become much larger and numerous.
+                * Often node group assets contain lots of nodes that are only sometimes used.
+                * Always inlining all of them is a lot of unnecessary work.
+              * Can preprocess groups in parallel and changes in one does not require inlining
+                everything again.
+              * Repeat zone and other future zones do require nested evaluation anyway. They can't
+                be implemented by just statically inlining everything into a single flat tree.
+          </aside>
+        </section>
+        <section>
+          <h2>Evaluation Order</h2>
+          <div
+            class="poll-single-choice"
+            id="simple-recursive-eval-problems"
+            data-hide-result
+          >
+            <option>Depth-First</option>
+            <option>Breath-First</option>
+          </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Depth vs. Breath first.
+            * Compare to starting too many personal projects at once.
+          </aside>
+        </section>
+        <section>
+          <h2>Lazyness</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Input vs. output lazyness.
+            * Introduction to `LazyFunction`.
+            * Show switch node example.
+            * Compare to visibility pass in depsgraph.
+          </aside>
+        </section>
+        <section>
+          <h2>Multi-Threading</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Scheduling nodes in parallel.
+            * Logical parallelism.
+              * There is no main thread that distributes tasks.
+          </aside>
+        </section>
+        <section>
+          <h2>Task Stealing</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Describe how it approximately works in TBB.
+          </aside>
+        </section>
+        <section>
+          <h2>Lazy-Threading</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Describe how using threading primitives without actually using multiple threads has overhead.
+            * Even if there are multiple threads, if the individual tasks are too small, it's not worth it.
+            * The evaluator doesn't generally know how long a specific node will take.
+            * Heuristics are very hard.
+            * Use existing grain size heuristics.
+          </aside>
+        </section>
+        <section>
+          <h2>Composing Lazy-Functions</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * As we've seen already, lazy-functions are composed in a graph.
+            * The nice thing is that if we give the graph some input and output sockets, we end up with a new
+              lazy-function that can be embedded into other graphs.
+            * This is how node groups are implemented.
+              * Each group is turned into a lazy-function, that is then embedded into the groups that use it.
+              * Thanks to the design of lazy-functions that just works and behaves pretty much exactly the same
+                as if everything was inlined with respect to lazyness.
+              * We could still optionally inline some node groups, but for now that hasn't really been worth it.
+          </aside>
+        </section>
       </div>
     </div>
 
