@@ -473,71 +473,94 @@
       const standard_width = 960;
       const standard_height = 700;
 
-      d3.csv("analysis/grain_size_results.csv", d3.autoType).then(
-        (csv_data) => {
-          const trace1 = {
-            x: csv_data.map((x) => x["Grain Size"]),
-            y: csv_data.map((x) => x["Time (s)"]),
-            type: "scatter",
-            line: {
-              color: "rgb(219, 166, 103)",
+      async function make_graph(
+        source_file_path,
+        x_name,
+        y_name,
+        filter_x_fn = (v) => true
+      ) {
+        let csv_data = await d3.csv(
+          "analysis/grain_size_results.csv",
+          d3.autoType
+        );
+        csv_data = csv_data.filter((v) => filter_x_fn(v[x_name]));
+
+        const trace1 = {
+          x: csv_data.map((v) => v[x_name]),
+          y: csv_data.map((v) => v[y_name]),
+          type: "lines+markers",
+          line: {
+            color: "rgb(219, 166, 103)",
+          },
+        };
+
+        const data = [trace1];
+
+        const tick_font_size = 36;
+        const title_font_size = 24;
+
+        const layout = {
+          paper_bgcolor: "transparent",
+          plot_bgcolor: "transparent",
+          showlegend: false,
+          xaxis: {
+            gridcolor: "#222",
+            tickcolor: "transparent",
+            tickformat: ",.0f",
+            nticks: 5,
+            tickfont: {
+              color: "white",
+              size: tick_font_size,
             },
-          };
-
-          const data = [trace1];
-
-          const layout = {
-            paper_bgcolor: "transparent",
-            plot_bgcolor: "transparent",
-            showlegend: false,
-            xaxis: {
-              gridcolor: "#222",
-              tickcolor: "transparent",
-              tickfont: {
+            title: {
+              text: x_name,
+              font: {
+                size: title_font_size,
                 color: "white",
-                size: 20,
               },
-              title: {
-                text: "Grain Size",
-                font: {
-                  size: 20,
-                  color: "white",
-                },
-                standoff: 10,
-              },
+              standoff: 10,
             },
-            yaxis: {
-              gridcolor: "#222",
-              tickcolor: "transparent",
-              tickfont: {
+          },
+          yaxis: {
+            gridcolor: "#222",
+            tickcolor: "transparent",
+            tickformat: ",.0f",
+            nticks: 5,
+            tickfont: {
+              color: "white",
+              size: tick_font_size,
+            },
+            title: {
+              text: y_name,
+              font: {
+                size: title_font_size,
                 color: "white",
-                size: 20,
               },
-              title: {
-                text: "Time (s)",
-                font: {
-                  size: 20,
-                  color: "white",
-                },
-                standoff: 10,
-              },
+              standoff: 10,
             },
-            margin: {
-              l: "auto",
-              r: 0,
-              b: "auto",
-              t: 0,
-              pad: 0,
-            },
-            scrollZoom: false,
-            dragmode: false,
-          };
+          },
+          margin: {
+            l: "100",
+            r: 0,
+            b: "100",
+            t: 0,
+            pad: 0,
+          },
+          scrollZoom: false,
+          dragmode: false,
+        };
 
-          Plotly.newPlot("first-plot", data, layout, {
-            displayModeBar: false,
-            responsive: false,
-          });
-        }
+        Plotly.newPlot("first-plot", data, layout, {
+          displayModeBar: false,
+          responsive: false,
+        });
+      }
+
+      make_graph(
+        "analysis/grain_size_results.csv",
+        "Grain Size",
+        "Time (s)",
+        (x) => x < 10000
       );
 
       polli_live.initialize({
