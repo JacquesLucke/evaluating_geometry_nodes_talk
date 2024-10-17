@@ -475,7 +475,6 @@
 
       d3.csv("analysis/grain_size_results.csv", d3.autoType).then(
         (csv_data) => {
-          console.log(csv_data);
           const trace1 = {
             x: csv_data.map((x) => x["Grain Size"]),
             y: csv_data.map((x) => x["Time (s)"]),
@@ -504,6 +503,7 @@
                   size: 20,
                   color: "white",
                 },
+                standoff: 10,
               },
             },
             yaxis: {
@@ -519,7 +519,7 @@
                   size: 20,
                   color: "white",
                 },
-                standoff: 100,
+                standoff: 10,
               },
             },
             margin: {
@@ -529,10 +529,13 @@
               t: 0,
               pad: 0,
             },
+            scrollZoom: false,
+            dragmode: false,
           };
 
           Plotly.newPlot("first-plot", data, layout, {
             displayModeBar: false,
+            responsive: false,
           });
         }
       );
@@ -544,6 +547,11 @@
       Reveal.initialize({
         hash: true,
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+      Reveal.addEventListener("slidechanged", function (event) {
+        if (event.currentSlide.querySelector("#first-plot")) {
+          Plotly.Plots.resize(document.getElementById("first-plot"));
+        }
       });
     </script>
   </body>
