@@ -581,8 +581,12 @@
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
       });
       Reveal.addEventListener("slidechanged", function (event) {
+        const currenSlide = event.currentSlide;
+        if (!currenSlide) {
+          return;
+        }
         for (const container_id of graphs_container_ids) {
-          const element = event.currentSlide.getElementById(container_id);
+          const element = currenSlide.querySelector("#" + container_id);
           if (element) {
             Plotly.Plots.resize(element);
           }
