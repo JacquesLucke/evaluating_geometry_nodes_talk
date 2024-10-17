@@ -121,22 +121,14 @@
           </aside>
         </section>
         <section>
-          <h2>Depsgraph Structure</h2>
-          <div
-            id="first-plot"
-            style="
-              width: 100%;
-              aspect-ratio: 2 / 1;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-            "
-          ></div>
+          <h2>Plot 1</h2>
+          <div id="first-plot"></div>
           <!-- prettier-ignore -->
-          <aside class="notes" data-markdown>
-            * [ ] Add image that shows a graph with three objects and their copy-on-eval, transform and geometry components.
-            * Explain how the graph is build, and how it generally works.
-          </aside>
+        </section>
+        <section>
+          <h2>Plot 2</h2>
+          <div id="second-plot"></div>
+          <!-- prettier-ignore -->
         </section>
         <section>
           <h2>Depsgraph Evaluation</h2>
@@ -472,9 +464,11 @@
     <script>
       const standard_width = 960;
       const standard_height = 700;
+      const graphs_container_ids = [];
 
       async function make_graph(
         source_file_path,
+        container_id,
         x_name,
         y_name,
         filter_x_fn = (v) => true
@@ -484,6 +478,13 @@
           d3.autoType
         );
         csv_data = csv_data.filter((v) => filter_x_fn(v[x_name]));
+        graphs_container_ids.push(container_id);
+        const container_elem = document.getElementById(container_id);
+        container_elem.style.width = "100%";
+        container_elem.style.aspectRatio = "2 / 1";
+        container_elem.style.display = "flex";
+        container_elem.style.justifyContent = "center";
+        container_elem.style.alignItems = "center";
 
         const trace1 = {
           x: csv_data.map((v) => v[x_name]),
@@ -518,7 +519,7 @@
                 size: title_font_size,
                 color: "white",
               },
-              standoff: 10,
+              standoff: 20,
             },
           },
           yaxis: {
@@ -540,9 +541,9 @@
             },
           },
           margin: {
-            l: "100",
-            r: 0,
-            b: "100",
+            l: 110,
+            r: 110,
+            b: 100,
             t: 0,
             pad: 0,
           },
@@ -550,7 +551,7 @@
           dragmode: false,
         };
 
-        Plotly.newPlot("first-plot", data, layout, {
+        Plotly.newPlot(container_id, data, layout, {
           displayModeBar: false,
           responsive: false,
         });
@@ -558,9 +559,17 @@
 
       make_graph(
         "analysis/grain_size_results.csv",
+        "first-plot",
         "Grain Size",
         "Time (s)",
         (x) => x < 10000
+      );
+      make_graph(
+        "analysis/grain_size_results.csv",
+        "second-plot",
+        "Grain Size",
+        "Time (s)",
+        (x) => true
       );
 
       polli_live.initialize({
@@ -572,8 +581,11 @@
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
       });
       Reveal.addEventListener("slidechanged", function (event) {
-        if (event.currentSlide.querySelector("#first-plot")) {
-          Plotly.Plots.resize(document.getElementById("first-plot"));
+        for (const container_id of graphs_container_ids) {
+          const element = event.currentSlide.getElementById(container_id);
+          if (element) {
+            Plotly.Plots.resize(element);
+          }
         }
       });
     </script>
