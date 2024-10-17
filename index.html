@@ -18,6 +18,19 @@
 
     <script src="https://js.polli.live/main.js"></script>
 
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"
+      integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.0/plotly.min.js"
+      integrity="sha512-L205fVN73b8Ft9dbuwTVGFb4FHVSOPpCLMQzcHa4r0+CuUswxzK/JRW7glZrpC+bO3Yaka0DYYDmtlhVbmnX+g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+
     <style>
       .reveal h1,
       .reveal h2,
@@ -109,6 +122,16 @@
         </section>
         <section>
           <h2>Depsgraph Structure</h2>
+          <div
+            id="first-plot"
+            style="
+              width: 100%;
+              aspect-ratio: 2 / 1;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+            "
+          ></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * [ ] Add image that shows a graph with three objects and their copy-on-eval, transform and geometry components.
@@ -404,6 +427,7 @@
           <ul>
             <li>Optimize for optimizeability</li>
             <li>Consider lazyness early on</li>
+            <li>Compare yourself against best possible performance</li>
           </ul>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -446,7 +470,77 @@
     <script src="plugin/markdown/markdown.js"></script>
     <script src="plugin/highlight/highlight.js"></script>
     <script>
-      polli_live.initialize({});
+      const standard_width = 960;
+      const standard_height = 700;
+
+      d3.csv("analysis/grain_size_results.csv", d3.autoType).then(
+        (csv_data) => {
+          console.log(csv_data);
+          const trace1 = {
+            x: csv_data.map((x) => x["Grain Size"]),
+            y: csv_data.map((x) => x["Time (s)"]),
+            type: "scatter",
+            line: {
+              color: "rgb(219, 166, 103)",
+            },
+          };
+
+          const data = [trace1];
+
+          const layout = {
+            paper_bgcolor: "transparent",
+            plot_bgcolor: "transparent",
+            showlegend: false,
+            xaxis: {
+              gridcolor: "#222",
+              tickcolor: "transparent",
+              tickfont: {
+                color: "white",
+                size: 20,
+              },
+              title: {
+                text: "Grain Size",
+                font: {
+                  size: 20,
+                  color: "white",
+                },
+              },
+            },
+            yaxis: {
+              gridcolor: "#222",
+              tickcolor: "transparent",
+              tickfont: {
+                color: "white",
+                size: 20,
+              },
+              title: {
+                text: "Time (s)",
+                font: {
+                  size: 20,
+                  color: "white",
+                },
+                standoff: 100,
+              },
+            },
+            margin: {
+              l: "auto",
+              r: 0,
+              b: "auto",
+              t: 0,
+              pad: 0,
+            },
+          };
+
+          Plotly.newPlot("first-plot", data, layout, {
+            displayModeBar: false,
+          });
+        }
+      );
+
+      polli_live.initialize({
+        width: standard_width,
+        height: standard_height,
+      });
       Reveal.initialize({
         hash: true,
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
