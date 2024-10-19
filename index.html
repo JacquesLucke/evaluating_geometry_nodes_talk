@@ -41,7 +41,7 @@
         text-transform: none;
       }
 
-      .function_name {
+      .function-name {
         color: rgb(219, 166, 103);
       }
 
@@ -203,18 +203,18 @@
         <section>
           <h2>Lazy Functions</h2>
           <ul style="list-style-type: none">
-            <li><code class="function_name">get_or_request_input</code></li>
-            <li><code class="function_name">set_output</code></li>
+            <li><code class="function-name">get_or_request_input</code></li>
+            <li><code class="function-name">set_output</code></li>
             <li>
               <code
-                class="function_name fragment custom blur"
+                class="function-name fragment custom blur"
                 data-fragment-index="1"
                 >get_output_usage</code
               >
             </li>
             <li>
               <code
-                class="function_name fragment custom blur"
+                class="function-name fragment custom blur"
                 data-fragment-index="1"
                 >set_input_unused</code
               >
@@ -268,14 +268,178 @@
         </section>
         <section>
           <h2>Scheduling - Message Priority</h2>
+          <img src="images/message_priority.png" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
+            * The order in which the messages are processed it not important for correctness.
+            * However, it can have a significant impact on performance.
+            * In this case we'd expect that we never have to make a copy of the cube mesh.
+            * A copy could happen though if the condition is True.
+              * In that case, the cube mesh is forwarded to the Set Position node and Switch node.
+              * Internally there are now two references to the cube mesh.
+              * So when the Set Position node wants to modify it, it first has to make a copy to avoid changing the other one.
+            * This is solved by giving the messages that specify that a certain input is not required higher priority.
+              * Then we know that the False input of the switch node is not needed and the Set Position node is the sole owner of the mesh.
+            * This used to be a relatively large problem, but it's a bit better now since we make extensive use of implicit sharing on geometry data structures.
+              * That means that when a geometry is copied, we rarely have to copy large arrays, but only increase their references counts.
           </aside>
         </section>
         <section>
-          <h3>Scheduling - Breath vs. Depth First</h3>
+          <h3>Scheduling - Breadth vs. Depth First</h3>
+          <img src="images/breadth_vs_depth_first.png" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
+            * Messages may schedule nodes. Now the question is which node to evaluate next when multiple nodes are scheduled.
+            * There are two main strategies:
+              * In breadth first scheduling, we evaluate nodes in the order in which they got scheduled.
+                * So after the Join Geometry node is scheduled, all three Bounding Box nodes are evaluated, which then schedule the three primitive nodes.
+                * Only after all three primitive nodes have been executed, the bounding box nodes are evaluated.
+              * In depth first scheduling, we always evaluate the node that was last scheduled next.
+                * So after the first bounding box node, the corresponding primitive node is evaluted which schedules the bounding box node again.
+                * Then the bounding box node is evaluated before the next node is run.
+          </aside>
+        </section>
+        <section>
+          <h2>Breadth or Depth First?</h2>
+          <div
+            class="polli-live-choice"
+            id="breadth-vs-depth-first"
+            data-hide-answer
+          >
+            <option>Depth First</option>
+            <option>Breadth First</option>
+          </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * What do you think is the better main strategy?
+            * Breadth first turns out to work better usually, because it leads to a lower peak memory usage.
+            * Also it makes it more likely that the next evaluated node works on the same data that the previous node just created.
+              * This improves cache utilization.
+          </aside>
+        </section>
+        <section>
+          <h2>Lazy Function Composition</h2>
+          <p>
+            <code class="function-name">LazyFunction</code> &#10230;
+            <code class="function-name">Graph</code> &#10230;
+            <code class="function-name">LazyFunction</code>
+          </p>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * We have a already seen that multiple lazy functions can be combined in a graph.
+            * An important and powerful design aspect is that it is possible to wrap the entire graph in a new lazy function.
+            * This new function can then be used as a single node in a new graph and behaves pretty much exactly the same as if all the nodes were inlined.
+            * This is quite powerful, because it allows building many smaller graphs which can be combined in a bigger one without loosing any of the lazyness.
+            * We make extensive use of that for node groups and zones.
+          </aside>
+        </section>
+        <section>
+          <h2>Node Groups</h2>
+          <img
+            src="images/node_group.svg"
+            class="filter-lazy-function-graph-svg"
+          />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * There are two main ways to handle node groups during node evaluation.
+            * One can inline all nodes into a single node tree or one can keep them separate.
+            * Always inlining has the benefit that it can be done in a preprocessing step and the code afterwards does not have to worry about it anymore.
+              * Specifically, the lazy function graph evaluator would not have to be able to handle nested functions.
+              * Furthermore, some optimizations may be easier to implement on a flat graph instead of a nested one.
+            * All node systems except geometry nodes flatten the entire node tree before evaluation currently.
+            * Geometry nodes does not inline node groups because:
+              * The evaluator would have to be able to handle nesting anyway because of zones.
+              * Geometry nodes trees tend to get much bigger than in other node systems.
+                * Having more than ten thousand nodes after everything is inlined is not uncommon.
+                * It's quite expensive to inline all of that.
+                * Especially, considering that often only a much smaller part is actually evaluated and the rest is disabled by switch nodes when using high level assets.
+              * Currently, we don't have the need to implement optimizations that would require inlining, but if that's really necessary, we can still selectively inline some node groups.
+          </aside>
+        </section>
+        <section>
+          <h2>Zones</h2>
+          <img
+            src="images/repeat_zone.svg"
+            class="filter-lazy-function-graph-svg"
+          />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * When the geometry nodes tree is converted into a lazy-function graph, each zone becomes a single node.
+            * A separate graph is created for each zone.
+            * What kind of graph is created depends on the type of zone.
+            * The Repeat and For Each zone dynamically create a graph that based on the number of iterations.
+            * The shown graph is for a repeat zone with 3 iterations. Note how there are 3 instances of the Repeat Body node which is yet another graph that contains all nodes inside the zone.
+            * This approach has the significant advantage that the existing graph evaluator can be used to evaluate these zones without any extra complexity.
+            * Using the existing evaluator also means that we get all the scheduling and multi-threading optimizations of it for free.
+              * For example, it's perfectly possible that nodes in multiple repeat iterations are evaluated at the same time.
+            * This approach is not ideal for cases where the work done in the zone body is very cheap.
+              * In the future we could try to detect such cases and evaluate such zones in a different way that is faster but does not support lazyness to the same degree.
+          </aside>
+        </section>
+        <section>
+          <h2>Scheduling - Multi Threading</h2>
+          <img src="images/multi_threading_simple.png" />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * In many cases it is possible to evaluate nodes in parallel.
+            * The message passing architecture of the evaluator makes it fairly straight to implement basic multi-threading.
+            * Nodes that are scheduled can be evaluated in parallel.
+            * Each node has a mutex that can be locked when sending a message to it.
+            * Internally that uses a task group provided by the TBB library.
+          </aside>
+        </section>
+        <section>
+          <h2>Task Stealing</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Task stealing is the strategy used to distribute work between threads in the TBB library.
+            * It roughly works like so:
+              * Each thread has its own queue of tasks to execute.
+              * When a thread runs out of tasks, it randomly picks another thread and steals half of its tasks.
+              * After a short while, each thread will have work assuming there is enough work.
+            * This is different from e.g. explicitly assigning tasks to threads and has some nice performance and scaling benefits.
+          </aside>
+        </section>
+        <section>
+          <h2>Multi Threading Overhead</h2>
+          <pre class="cpp"><code data-trim>
+            parallel_for(10'000, 512, [&](const IndexRange range) {
+              ...
+            });
+          </code></pre>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * There is one big issue with the approach I described so far and that is that each communication across threads and each lock comes at a cost.
+            * This cost can be much higher than the actual work done by the nodes, especially when there are many cheap nodes like math nodes.
+            * Ideally, we'd like to detect situations when multi-threading is beneficial and only then use it.
+            * This is not trivial, but lets first look at how that's done in simpler cases.
+            * The shown example shows a common case where we want to process 10.000 elements in parallel.
+            * We always specify the so called "grain size" which is the size of a unit of work.
+            * If the total number of elements to process is smaller, all work is done on the current thread without any multi-threading overhead.
+          </aside>
+        </section>
+        <section>
+          <h2>Lazy Threading</h2>
+          <p>
+            <span class="function-name">Non-Uniform</span> and
+            <span class="function-name">Unknown</span> Task Sizes
+          </p>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Unfortunately, the same approach does not work for graph evaluation because of two main reasons:
+              * The tasks do not have a uniform size. That implies that a simple grain size does not work because that depends on the size.
+              * Furthermore, we do not even know the task sizes in advance. Most nodes in geometry nodes can be cheap or expensive depending on the specific inputs.
+            * The solution is to use an approach I call "lazy threading". That works as follows:
+              * By default, the evaluator is single threaded, so no communication between threads and locks are necessary.
+              * While a task is being executed, it may inform the scheduler that invoked it that it takes a while.
+              * The scheduler can then decide to enable multi-threading and to move all tasks that are already scheduled to a task group that other threads can steal from.
+              * After multi-threading is enabled in the scheduler, all messages that are passed around need locks.
+              * However, note that all the nested node graphs are still evaluated in single-thread mode which typically contain the majority of nodes.
+            * The main remaining question is when and how tasks send messages to the scheduler.
+              * It works by letting the scheduler put a custom callback into thread-local storage that the tasks can call (with a simple API).
+              * The when is more tricky because it would be annoying to add extra scheduler specific code in lots of places.
+              * Fortunately, I noticed that we do have that code in many places already.
+              * All the grain sizes we use for `parallel_for` already provide heuristics that can be reused here by just adding a little bit of extra code in `parallel_for`.
           </aside>
         </section>
       </div>
