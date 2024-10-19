@@ -52,6 +52,10 @@
       .fragment.blur.visible {
         filter: none;
       }
+
+      .filter-lazy-function-graph-svg {
+        filter: invert(90%);
+      }
     </style>
   </head>
   <body>
@@ -187,12 +191,17 @@
               * Importantly, it does not have to request all of them at the same time.
                 * For example, the switch node first only requests the condition input.
                 * Once that comes back, it can request one of the remaining inputs.
-                * Solving this generically comes with some extra complexity, especially if multi-threaded evaluation has to be supported too.
-                * Next I'll present the internal evaluation system we actually use for geometry nodes.
+            * This can be implemented relatively easily with a recursive evaluator.
+              * Was done for the first geometry nodes evaluator.
+              * Has significant limitations:
+                * Single threaded
+                * Long chains of nodes result in a long call stack which can lead to a stack overflow with just a few hundred nodes.
+            * Solving this generically comes with some extra complexity, especially if multi-threaded evaluation has to be supported too.
+            * Next I'll present the internal evaluation system we actually use for geometry nodes.
           </aside>
         </section>
         <section>
-          <h2>Lazy Function API</h2>
+          <h2>Lazy Functions</h2>
           <ul style="list-style-type: none">
             <li><code class="function_name">get_or_request_input</code></li>
             <li><code class="function_name">set_output</code></li>
@@ -200,14 +209,14 @@
               <code
                 class="function_name fragment custom blur"
                 data-fragment-index="1"
-                >set_input_unused</code
+                >get_output_usage</code
               >
             </li>
             <li>
               <code
                 class="function_name fragment custom blur"
                 data-fragment-index="1"
-                >get_output_usage</code
+                >set_input_unused</code
               >
             </li>
           </ul>
@@ -218,6 +227,55 @@
               * That may not be immediately obvious when working on nodes though.
               * That's because most nodes use a more high-level API that hides away the lazyness aspect.
               * More special nodes like the different kinds of Switch nodes are implemented directly as `LazyFunction` though.
+            * A lazy function uses the following methods to interact with its inputs and outputs...
+            * The lazy-function API is independent of geometry nodes, so it can also be tested independently.
+          </aside>
+        </section>
+        <section>
+          <h2>Lazy Function Graph</h2>
+          <img
+            src="images/simple_lazy_function_graph.svg"
+            class="filter-lazy-function-graph-svg"
+          />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Each geometry node tree is first converted into a lazy function graph like the one shown here.
+            * It's typically very similar to the corresponding node tree with some differences:
+              * It has some extra stuff that's needed to handle the lifetimes of anonymous attributes.
+                * See the "Usage" and "Propagate" sockets.
+              * Zones are also represented differently in the graph.
+            * The geometry nodes modifier or node tools operator then takes this generated lazy-function graph and evaluates it.
+            * For that it provides all the inputs and requests all the main outputs.
+            * It's a limitation that the modifier always has to provide all inputs, but lazyness is not possible outside of the modifier yet.
+            * For debugging purposes, this graph can be visualized using a Core Debug Tools add-on that can be installed via the extensions platform.
+          </aside>
+        </section>
+        <section>
+          <h2>Message Passing</h2>
+          <img
+            src="images/lazy_function_with_named_links.svg"
+            class="filter-lazy-function-graph-svg"
+          />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            1. Request geometry from subdivide node.
+            2. Request Mesh and Propagate inputs.
+            3. Switch node requests condition input.
+            4. Once that is ready, the switch node is evaluated again, this time it requests the False input and sets the True input as unused.
+            5. Once that is ready, it simply forwards the geometry to the subdivide node.
+            6. It performs subdivision and forwards the result to the output.
+          </aside>
+        </section>
+        <section>
+          <h2>Scheduling - Message Priority</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+          </aside>
+        </section>
+        <section>
+          <h3>Scheduling - Breath vs. Depth First</h3>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
           </aside>
         </section>
       </div>
