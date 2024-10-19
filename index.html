@@ -168,7 +168,7 @@
             * In this case it's obvious because the output of the node is not used at all.
             * However, some more complex cases can be handled with this approach too.
               * The dependency graph evaluation uses a separate pass to first determine when objects are visible in the case of animated visibility.
-              * Switch nodes with simple conditions could be handled this way too.
+              * Cycles uses this approach to optimize e.g. Mix nodes when the mix factor is a constant 0 or 1 so that one of the inputs can be ignored.
           </aside>
         </section>
         <section>
@@ -252,6 +252,7 @@
         </section>
         <section>
           <h2>Message Passing</h2>
+          TODO: Use screenshot instead because it's simpler.
           <img
             src="images/lazy_function_with_named_links.svg"
             class="filter-lazy-function-graph-svg"
@@ -301,6 +302,8 @@
         </section>
         <section>
           <h2>Breadth or Depth First?</h2>
+          TODO: Somehow put this on the slide before so that the screenshot is
+          still visible.
           <div
             class="polli-live-choice"
             id="breadth-vs-depth-first"
@@ -312,7 +315,7 @@
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * What do you think is the better main strategy?
-            * Breadth first turns out to work better usually, because it leads to a lower peak memory usage.
+            * Depth first turns out to work better usually, because it leads to a lower peak memory usage.
             * Also it makes it more likely that the next evaluated node works on the same data that the previous node just created.
               * This improves cache utilization.
           </aside>
