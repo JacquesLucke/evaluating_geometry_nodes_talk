@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="plugin/highlight/my_theme.css" />
 
     <script src="https://js.polli.live/main.js"></script>
+    <!-- <script src="http://localhost:8080/main.js"></script> -->
 
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"
@@ -288,8 +289,16 @@
           </aside>
         </section>
         <section>
-          <h3>Scheduling - Breadth vs. Depth First</h3>
+          <h3>Scheduling - Breadth or Depth First?</h3>
           <img src="images/breadth_vs_depth_first.png" />
+          <div
+            class="polli-live-choice"
+            id="breadth-vs-depth-first"
+            data-hide-answer=""
+          >
+            <option>Breadth First</option>
+            <option>Depth First</option>
+          </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Messages may schedule nodes. Now the question is which node to evaluate next when multiple nodes are scheduled.
@@ -300,22 +309,6 @@
               * In depth first scheduling, we always evaluate the node that was last scheduled next.
                 * So after the first bounding box node, the corresponding primitive node is evaluted which schedules the bounding box node again.
                 * Then the bounding box node is evaluated before the next node is run.
-          </aside>
-        </section>
-        <section>
-          <h2>Breadth or Depth First?</h2>
-          TODO: Somehow put this on the slide before so that the screenshot is
-          still visible.
-          <div
-            class="polli-live-choice"
-            id="breadth-vs-depth-first"
-            data-hide-answer
-          >
-            <option>Depth First</option>
-            <option>Breadth First</option>
-          </div>
-          <!-- prettier-ignore -->
-          <aside class="notes" data-markdown>
             * What do you think is the better main strategy?
             * Depth first turns out to work better usually, because it leads to a lower peak memory usage.
             * Also it makes it more likely that the next evaluated node works on the same data that the previous node just created.
