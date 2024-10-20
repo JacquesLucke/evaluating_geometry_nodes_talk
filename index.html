@@ -97,9 +97,11 @@
         </section>
         <section>
           <h2>Topics</h2>
-          <p>Get Started</p>
-          <p>Lazy Evaluation</p>
-          <p>Array Processing</p>
+          <em>
+            <p>Get Started</p>
+            <p>Lazy Evaluation</p>
+            <p>Array Processing</p>
+          </em>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Start with showing some simpler evaluation methods to set the scene.
@@ -146,6 +148,11 @@
         <section>
           <h2>Toposort</h2>
           <img src="images/toposort.png" />
+          <h4>Are there multiple possible orderings?</h4>
+          <div class="polli-live-choice" id="unique-toposort" data-hide-answer>
+            <option>Yes</option>
+            <option>No</option>
+          </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * The simplest mechanims is to simply sort the nodes topologically.
@@ -237,8 +244,13 @@
         <section>
           <h2>Lazy Function Graph</h2>
           <img
+            src="images/simple_lazy_function_graph.png"
+            style="width: 50%; margin-bottom: 0"
+          />
+          <img
             src="images/simple_lazy_function_graph.svg"
             class="filter-lazy-function-graph-svg"
+            style="width: 80%; margin-top: 0"
           />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -290,7 +302,7 @@
           <div
             class="polli-live-choice"
             id="breadth-vs-depth-first"
-            data-hide-answer=""
+            data-hide-answer
           >
             <option>Breadth First</option>
             <option>Depth First</option>
@@ -352,6 +364,7 @@
         </section>
         <section>
           <h2>Zones</h2>
+          <img src="images/repeat_zone.png" style="margin-bottom: -10px" />
           <img
             src="images/repeat_zone.svg"
             class="filter-lazy-function-graph-svg"
@@ -372,7 +385,16 @@
         </section>
         <section>
           <h2>Scheduling - Multi Threading</h2>
-          <img src="images/multi_threading_simple.png" />
+          <img
+            src="images/multi_threading_simple.png"
+            style="margin-bottom: 0; width: 80%"
+          />
+          <h4>How many threads should be used here?</h4>
+          <div class="polli-live-choice" id="how-many-threads" data-hide-answer>
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+          </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * In many cases it is possible to evaluate nodes in parallel.
@@ -435,7 +457,20 @@
         </section>
         <section>
           <h2>Array Processing</h2>
-          <img src="images/array_processing.png" />
+          <img
+            src="images/array_processing.png"
+            style="width: 80%; margin-bottom: 0"
+          />
+          <h4>How many field evaluations happen here?</h4>
+          <div
+            class="polli-live-choice"
+            id="how-many-field-evaluations"
+            data-hide-answer
+          >
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+          </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * This concludes the lazy evaluation section of the talk.
@@ -590,7 +625,7 @@
           </aside>
         </section>
         <section>
-          <h2>Keep Cases Under Control</h2>
+          <h2>Controling the Explosion</h2>
           <pre
             class="cpp"
           ><code data-trim data-line-numbers="6"><script type="text/template">
