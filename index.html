@@ -103,7 +103,8 @@
             * Start with showing some simpler evaluation methods to set the scene.
               * These are also methods that make sense when just starting out to build a new node system.
             * Then we have a look at how the geometry nodes graph is processed and how it is evaluated at a high level.
-            * Lastly, we have a look at how math functions are evaluated as part of field evaluation
+            * Lastly, we have a look at how math functions are evaluated as part of field evaluation.
+            * This is a technical talk that's mainly geared towards developers curious about how geometry nodes works internally, or who are building their own evaluation system.
           </aside>
         </section>
         <section>
@@ -443,6 +444,194 @@
               * The when is more tricky because it would be annoying to add extra scheduler specific code in lots of places.
               * Fortunately, I noticed that we do have that code in many places already.
               * All the grain sizes we use for `parallel_for` already provide heuristics that can be reused here by just adding a little bit of extra code in `parallel_for`.
+          </aside>
+        </section>
+        <section>
+          <h2>Array Processing</h2>
+          <img src="images/array_processing.png" />
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * This concludes the lazy evaluation section of the talk.
+            * Next, I'll talk about how we process large quantities of data in geometry nodes.
+            * Those are typically field evaluations potentially involving attributes.
+            * The basic problem statement is fairly simple:
+              * We have an input for each index and want to compute an output for each index.
+              * In this example, we have the radius attribute and index field as input and two math nodes that should be processed.
+            * The goal is of course to do that efficiently and with low peak memory usage.
+            * Before talking about the actual implementation, I want to mention two approaches that we do not use yet.
+          </aside>
+        </section>
+        <section>
+          <h2>No GPU Processing</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Geometry Nodes does not use any GPU acceleration yet.
+            * That is even though all this array processing would be very suitable for the GPU.
+            * The main reasons are:
+              * Using the GPU from Geometry Nodes is more complex than using it in the places that use it already like rendering.
+                * Most systems that use the GPU in Blender run at the very end after the entire scene has been processed. Its output often does not have to be copied back to main memory.
+                * However, geometry nodes runs in the middle of the dependency graph evaluation and its output is frequently used by other parts of Blender that can't run on the GPU.
+                * Moving data back and forth between the CPU and GPU is expensive and detecting when it is worth it is not trivial.
+                * Having many threads that concurrently evaluate geometry nodes interact with the GPU might also need cause problems that we have to develop solutions for.
+              * Shader compilation can be slow and it's not acceptable to have to wait for it all the time.
+                * Evaluating geometry nodes would potentially require lots of shaders to be compiled.
+              * In typical scenes, the array processing is rarely the bottleneck given the optimizations I'll talk about.
+                * Very common bottlenecks are mesh boolean, bvh tree lookups and subdivision surfaces.
+              * We need an efficient CPU implementation anyway.
+            * That said, there are certainly use-cases that would benefit from better GPU support and it's something we'll hopefully look into more in the future.
+          </aside>
+        </section>
+        <section>
+          <h2>No Just-in-Time Compilation</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Using LLVM it's fairly straight forward to generate highly optimized machine code at runtime nowadays.
+            * The motivation for using it is that it can generate code that does the array processing much faster than without code generation.
+            * However, that also comes at a cost:
+              * Similar to shader compilation, compiling with llvm can be quite slow introducing wait times that I just don't want to have in geometry nodes.
+              * It does add a fair amount of complexity and makes debugging harder.
+              * We still need an efficient fallback implementation anyway.
+            * Assuming we can hide the wait times by using the fallback implementation during compilation, all that complexity is only worth it if it actually makes things significantly faster.
+              * I tried to quantify how much speedup we can expect a couple of times and it was never all that much.
+              * In the best case, I maybe got a 2x speedup over what we have a now, but that is assuming you have lots of very simple operations and by that I mean just addition, subtraction and multiplication.
+                * Any slightly more complex operation like division or square root can easily make the difference negilible. Not to mention something like noise functions which are orders of magnitudes slower.
+                * One also already needs lots of math nodes before the benefit becomes noticable, because even just filling a large array with the results is slow compared to the actual computation.
+            * So, there are situations that can benefit from JIT compilation, but it's not enough to justify prioritizing it over many other topics.
+          </aside>
+        </section>
+        <section>
+          <h2>Latency vs. Throughput</h2>
+          <div
+            class="polli-live-choice"
+            id="latency-vs-throughput"
+            data-hide-answer
+          >
+            <option>Latency</option>
+            <option>Throughput</option>
+          </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * With that out of the way, we can talk about the actual implementation.
+            * When designing a system like this, it's important to know what you're optimizing exactly.
+            * There are two main time metrics that can be optimized:
+              * Latency is the time it takes to evaluate a single element. For example, when I have two noise functions and one takes 100ns to evaluate for one position and the other 200ns, the first would have better latency.
+              * Throughput is the number of elements that can be evaluated per time. In the same example, if the first noise function can compute 10.000 positions per ms and the second one 20.000, then the second has a better throughput.
+            * Importantly, optimizing one of them typically implies making the other metric worse.
+            * What do you think which metric we should optimize for?
+            * We optimize for throughput, because in geometry nodes it typically does not matter how long a single operation takes.
+              * Instead it matters that we can do as many as possible per second.
+            * There are cases where optimizing for latency is important though, e.g. when evaluating all the dependencies in an armature or drivers in general.
+          </aside>
+        </section>
+        <section>
+          <h2>Multi Functions</h2>
+          <ul style="list-style-type: none">
+            <li><code class="function-name">get_input_varray</code></li>
+            <li><code class="function-name">get_output_array</code></li>
+          </ul>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * Similar to lazy functions from before, we also have a multi-function API.
+            * The name comes from the fact that these functions are designed to be evaluated on multiple elements at the same time.
+            * They handle inputs and outputs different from lazy-functions using the shown functions.
+            * Internally, we use slightly different names but with the same general semantics.
+            * `get_input_varray` returns a so called "virtual array".
+              * That is a readonly array-like data structure that is used to access the input values.
+              * Often it is either backed by an actual array or just a single value. In some more rare cases it can also have a custom callback, e.g. for the index field.
+              * Converting everything to arrays is prohibilitively expensive, because usually most inputs are single values.
+            * `get_output_array` returns a writable array (not a virtual one) that the multi-function can write the results into.
+            * This design puts the burden of managing input and outputs arrays on the caller which is makes it easier to reuse arrays that are already allocated.
+          </aside>
+        </section>
+        <section>
+          <h2>Manual Implementation</h2>
+          <pre
+            class="cpp"
+          ><code data-trim data-line-numbers="1-2|3|5-7"><script type="text/template">
+          const VArray a = p.get_input_varray<int>("A");
+          const VArray b = p.get_input_varray<int>("B");
+          MutableSpan result = p.get_output_array<int>("Result");
+
+          mask.foreach_index([&](const int i) {
+            result[i] = a[i] + b[i];
+          });
+          </script></code></pre>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * This code implements a simple function that adds two integers.
+            * In it's current state, it's not very efficient.
+              * That's because there is virtual function call overhead every time an input is accessed.
+              * For some kinds of functions that's fine, but here that overhead is more costly than the operation itself.
+              * It's possible to check if a virtual array contains an actual array or single value and to optimize for these cases.
+              * That adds a fair amount of boilerplate though.
+              * While it's possible to generalize this "devirtualization", it's still annoying to have to do for every math function.
+          </aside>
+        </section>
+        <section>
+          <h2>Multi Function Build Utils</h2>
+          <pre class="cpp"><code data-trim><script type="text/template">
+          static auto fn = build::SI2_SO<int, int, int>(
+            "Add",
+            [](int a, int b) {
+              return a + b;
+            });
+          </script></code></pre>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * For that reason, we have simple utilities that build an entire multi-function from a lambda.
+            * Internally, that can implement optimizations like devirtualization.
+            * The `SI2_SO` name specifies that the function takes two inputs and one output.
+          </aside>
+        </section>
+        <section>
+          <h2>Combinatorial Explosion</h2>
+          <p>
+            <span class="function-name">Binary Size</span> /
+            <span class="function-name">Compilation Time</span>
+          </p>
+          <p>vs.</p>
+          <p><span class="function-name">Performance</span></p>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * There is one big problem with generating optimized versions for the different kinds of inputs to a multi-function.
+            * If each input can be a single value, or array or something else, we need 3^#Inputs different versions.
+            * For functions with two inputs, that can be ok, but it becomes a real problem when the number of inputs increases.
+          </aside>
+        </section>
+        <section>
+          <h2>Keep Cases Under Control</h2>
+          <pre
+            class="cpp"
+          ><code data-trim data-line-numbers="6"><script type="text/template">
+          static auto fn = build::SI2_SO<int, int, int>(
+            "Add",
+            [](int a, int b) {
+              return a + b;
+            },
+            build::exec_presets::AllSpanOrSingle());
+          </script></code></pre>
+          <p class="function-name fragment custom blur">
+            <code>Add:</code> <span class="function-name">1296</span>&#8201;ms
+            &#10230; <span class="function-name">68</span>&#8201;ms &#10230;
+            <span class="function-name">42</span>&#8201;ms
+          </p>
+          <p class="function-name fragment custom blur">
+            <code>Logarithm:</code>
+            <span class="function-name">240</span>&#8201;ms &#10230;
+            <span class="function-name">71</span>&#8201;ms &#10230;
+            <span class="function-name">63</span>&#8201;ms
+          </p>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * We deal with that problem in two ways.
+            * First, we have the ability to control which cases are generated at a high level with a single line.
+              * This makes it easy to check the performance impact of generating more or less cases.
+            * Second, we have a good fallback path that handles most cases very well with a single code path.
+            * The numbers show the time it takes to evaluate many math nodes on 10 million points.
+              * It takes over a second when there is the virtual function call overhead for each access.
+              * Our optimized fallback implementation only needs 68ms.
+              * The fully optimized version is even faster at 42ms but this produces quite a bit more code.
+            * The more complex the functions get, the closer these results are.
           </aside>
         </section>
       </div>
