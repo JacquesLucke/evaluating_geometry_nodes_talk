@@ -11,3 +11,5 @@ node_modules/
 .sass-cache
 .venv
 *.blend1
+analysis/grain_size.blend
+images/jit_benefit.blend
