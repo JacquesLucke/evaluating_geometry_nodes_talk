@@ -759,6 +759,34 @@
         </section>
       </div>
     </div>
+    <div
+      id="my-progress"
+      style="
+        position: sticky;
+        bottom: 0.4rem;
+        left: 0;
+        color: white;
+        width: 100%;
+        background-color: #00d6a3ff;
+        border: 2px solid transparent;
+        transform: scaleX(0.5);
+        transform-origin: 0 0;
+        transition: 0.8s cubic-bezier(0.26, 0.86, 0.44, 0.985);
+      "
+    ></div>
+    <img
+      id="my-progress-icon"
+      src="images/socket.svg"
+      style="
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        transform-origin: 0 0;
+        width:1rem;
+        transition: 0.8s cubic-bezier(0.26, 0.86, 0.44, 0.985);
+        transform: translateX(50vw);
+      "
+    ></div>
 
     <script src="dist/reveal.js"></script>
     <script src="plugin/notes/notes.js"></script>
@@ -891,6 +919,7 @@
       });
       Reveal.initialize({
         hash: true,
+        progress: false,
         plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
       });
       Reveal.addEventListener("slidechanged", function (event) {
@@ -904,6 +933,11 @@
             Plotly.Plots.resize(element);
           }
         }
+        const progress = Reveal.getProgress();
+        const progress_bar_elem = document.getElementById("my-progress");
+        const progress_icon_elem = document.getElementById("my-progress-icon");
+        progress_bar_elem.style.transform = `scaleX(${progress})`;
+        progress_icon_elem.style.transform = `translateX(${progress * 100}vw)`;
       });
     </script>
   </body>
