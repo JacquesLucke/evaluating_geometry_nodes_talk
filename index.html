@@ -43,7 +43,7 @@
       }
 
       .reveal em {
-        color: rgb(219, 166, 103);
+        color: #dba667;
         font-style: normal;
       }
 
@@ -485,6 +485,7 @@
         </section>
         <section>
           <h2>No GPU Processing</h2>
+          <img src="images/current_gpu_usage.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Geometry Nodes does not use any GPU acceleration yet.
@@ -505,6 +506,7 @@
         </section>
         <section>
           <h2>No Just-in-Time Compilation</h2>
+          <img src="images/jit_pipeline.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Using LLVM it's fairly straight forward to generate highly optimized machine code at runtime nowadays.
