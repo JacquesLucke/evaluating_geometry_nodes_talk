@@ -51,6 +51,10 @@
         font-style: normal;
       }
 
+      .reveal pre code {
+        max-height: 500px;
+      }
+
       .fragment.blur {
         filter: blur(0.2em);
       }
@@ -67,7 +71,9 @@
   <body>
     <div class="reveal">
       <div class="slides">
-        <section><h2>Evaluating Geometry Nodes</h2></section>
+        <section>
+          <h2 class="r-fit-text">Evaluating Geometry Nodes</h2>
+        </section>
         <section>
           <div
             style="display: grid; grid-template-columns: 2fr 3fr; height: 100%"
@@ -152,6 +158,7 @@
         <section>
           <h2>Toposort</h2>
           <img src="images/toposort.png" />
+          <hr style="margin-top: 0" />
           <h4>Are there multiple possible orderings?</h4>
           <div class="polli-live-choice" id="unique-toposort" data-hide-answer>
             <option>Yes</option>
@@ -215,25 +222,26 @@
           </aside>
         </section>
         <section>
-          <h2>Lazy Functions</h2>
-          <ul style="list-style-type: none">
-            <li>
-              <code><em>get_or_request_input</em></code>
-            </li>
-            <li>
-              <code><em>set_output</em></code>
-            </li>
-            <li>
-              <code class="fragment custom blur" data-fragment-index="1"
-                ><em>get_output_usage</em></code
-              >
-            </li>
-            <li>
-              <code class="fragment custom blur" data-fragment-index="1"
-                ><em>set_input_unused</em></code
-              >
-            </li>
-          </ul>
+          <h2>Lazy Function</h2>
+          <pre
+            class="cpp"
+          ><code data-trim data-line-numbers="2|3|4,5,11|6,7,12,13|8,14"><script type="text/template">
+          // Simple lazy switch node.
+          const bool *condition = p.get_or_request("Switch");
+          if (!condition) return;
+          if (*condition) {
+            p.set_input_unused("False");
+            const Geometry *value = p.get_or_request("True");
+            if (!value) return;
+            p.set_output("Value", *value);
+          }
+          else {
+            p.set_input_unused("True");
+            const Geometry *value = p.get_or_request("False");
+            if (!value) return;
+            p.set_output("Value", *value);
+          }
+          </script></code></pre>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * At the core of our lazy evaluation system is the `LazyFunction` class.
@@ -249,7 +257,7 @@
           <h2>Lazy Function Graph</h2>
           <img
             src="images/simple_lazy_function_graph.png"
-            style="width: 50%; margin-bottom: 0"
+            style="width: 80%; margin-bottom: 0px"
           />
           <img
             src="images/simple_lazy_function_graph.svg"
@@ -368,7 +376,7 @@
         </section>
         <section>
           <h2>Zones</h2>
-          <img src="images/repeat_zone.png" style="margin-bottom: -10px" />
+          <img src="images/repeat_zone.png" style="margin-bottom: -40px" />
           <img
             src="images/repeat_zone.svg"
             class="filter-lazy-function-graph-svg"
@@ -393,6 +401,7 @@
             src="images/multi_threading_simple.png"
             style="margin-bottom: 0; width: 80%"
           />
+          <hr style="margin-top: -10px; margin-bottom: 10" />
           <h4>How many threads should be used here?</h4>
           <div class="polli-live-choice" id="how-many-threads" data-hide-answer>
             <option>1</option>
@@ -410,6 +419,7 @@
         </section>
         <section>
           <h2>Task Stealing</h2>
+          <img src="images/task_stealing_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Task stealing is the strategy used to distribute work between threads in the TBB library.
@@ -559,6 +569,7 @@
           <pre
             class="cpp"
           ><code data-trim data-line-numbers="1-2|3|5-7"><script type="text/template">
+          // Simple multi-function that adds two integers.
           const VArray a = p.get_input_varray<int>("A");
           const VArray b = p.get_input_varray<int>("B");
           MutableSpan result = p.get_output_array<int>("Result");
