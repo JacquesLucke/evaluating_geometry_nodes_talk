@@ -555,31 +555,7 @@
           </aside>
         </section>
         <section>
-          <h2>Multi Functions</h2>
-          <ul style="list-style-type: none">
-            <li>
-              <code><em>get_input_varray</em></code>
-            </li>
-            <li>
-              <code><em>get_output_array</em></code>
-            </li>
-          </ul>
-          <!-- prettier-ignore -->
-          <aside class="notes" data-markdown>
-            * Similar to lazy functions from before, we also have a multi-function API.
-            * The name comes from the fact that these functions are designed to be evaluated on multiple elements at the same time.
-            * They handle inputs and outputs different from lazy-functions using the shown functions.
-            * Internally, we use slightly different names but with the same general semantics.
-            * `get_input_varray` returns a so called "virtual array".
-              * That is a readonly array-like data structure that is used to access the input values.
-              * Often it is either backed by an actual array or just a single value. In some more rare cases it can also have a custom callback, e.g. for the index field.
-              * Converting everything to arrays is prohibilitively expensive, because usually most inputs are single values.
-            * `get_output_array` returns a writable array (not a virtual one) that the multi-function can write the results into.
-            * This design puts the burden of managing input and outputs arrays on the caller which is makes it easier to reuse arrays that are already allocated.
-          </aside>
-        </section>
-        <section>
-          <h2>Manual Implementation</h2>
+          <h2>Multi Function</h2>
           <pre
             class="cpp"
           ><code data-trim data-line-numbers="1-2|3|5-7"><script type="text/template">
@@ -593,6 +569,16 @@
           </script></code></pre>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
+            * Similar to lazy functions from before, we also have a multi-function API.
+            * The name comes from the fact that these functions are designed to be evaluated on multiple elements at the same time.
+            * They handle inputs and outputs different from lazy-functions using the shown functions.
+            * Internally, we use slightly different names but with the same general semantics.
+            * `get_input_varray` returns a so called "virtual array".
+              * That is a readonly array-like data structure that is used to access the input values.
+              * Often it is either backed by an actual array or just a single value. In some more rare cases it can also have a custom callback, e.g. for the index field.
+              * Converting everything to arrays is prohibilitively expensive, because usually most inputs are single values.
+            * `get_output_array` returns a writable array (not a virtual one) that the multi-function can write the results into.
+            * This design puts the burden of managing input and outputs arrays on the caller which is makes it easier to reuse arrays that are already allocated.
             * This code implements a simple function that adds two integers.
             * In it's current state, it's not very efficient.
               * That's because there is virtual function call overhead every time an input is accessed.
