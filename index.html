@@ -140,7 +140,7 @@
           </aside>
         </section>
         <section>
-          <h2>Get Started</h2>
+          <h2>Basics</h2>
           <img src="images/get_started.png" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -150,7 +150,7 @@
         </section>
         <section>
           <h2>Toposort</h2>
-          <img src="images/toposort.png" />
+          <img src="images/toposort_no_fonts.svg" />
           <hr style="margin-top: 0" />
           <h4>Are there multiple possible orderings?</h4>
           <div class="polli-live-choice" id="unique-toposort" data-hide-answer>
@@ -173,6 +173,7 @@
         <section>
           <h2>Two-Pass Evaluation</h2>
           <img src="images/two_pass.png" />
+          <img src="images/two_pass_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * A way to remedy the first problem is to process nodes in two passes.
@@ -186,8 +187,8 @@
           </aside>
         </section>
         <section>
-          <h2>Push vs. Pull</h2>
-          <img src="images/switch_domain_size.png" />
+          <h2>Request Based Evaluation</h2>
+          <img src="images/request_based_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * So far we've only looked at what I'd call push based evaluation.
@@ -220,17 +221,17 @@
             class="cpp"
           ><code data-trim data-line-numbers="2|3|4,5,11|6,7,12,13|8,14"><script type="text/template">
           // Simple lazy switch node.
-          const bool *condition = p.get_or_request("Switch");
+          bool *condition = p.get_or_request("Condition");
           if (!condition) return;
           if (*condition) {
             p.set_input_unused("False");
-            const Geometry *value = p.get_or_request("True");
+            Geometry *value = p.get_or_request("True");
             if (!value) return;
             p.set_output("Value", *value);
           }
           else {
             p.set_input_unused("True");
-            const Geometry *value = p.get_or_request("False");
+            Geometry *value = p.get_or_request("False");
             if (!value) return;
             p.set_output("Value", *value);
           }
@@ -254,8 +255,7 @@
           />
           <img
             src="images/simple_lazy_function_graph.svg"
-            class="filter-lazy-function-graph-svg"
-            style="width: 80%; margin-top: 0"
+            style="width: 90%; margin-top: 0"
           />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -271,21 +271,8 @@
           </aside>
         </section>
         <section>
-          <h2>Message Passing</h2>
-          <img src="images/message_passing.png" />
-          <!-- prettier-ignore -->
-          <aside class="notes" data-markdown>
-            1. Request geometry from subdivide node.
-            2. Request Mesh and Propagate inputs.
-            3. Switch node requests condition input.
-            4. Once that is ready, the switch node is evaluated again, this time it requests the False input and sets the True input as unused.
-            5. Once that is ready, it simply forwards the geometry to the subdivide node.
-            6. It performs subdivision and forwards the result to the output.
-          </aside>
-        </section>
-        <section>
-          <h2>Scheduling - Message Priority</h2>
-          <img src="images/message_priority.png" />
+          <h2>Scheduling &#8211; Message Priority</h2>
+          <img src="images/shared_mesh_references_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * The order in which the messages are processed it not important for correctness.
@@ -302,7 +289,7 @@
           </aside>
         </section>
         <section>
-          <h3>Scheduling - Breadth or Depth First?</h3>
+          <h3>Scheduling &#8211; Breadth or Depth First?</h3>
           <img src="images/breadth_vs_depth_first.png" />
           <div
             class="polli-live-choice"
@@ -389,7 +376,7 @@
           </aside>
         </section>
         <section>
-          <h2>Scheduling - Multi Threading</h2>
+          <h2>Scheduling &#8211; Multi Threading</h2>
           <img
             src="images/multi_threading_simple.png"
             style="margin-bottom: 0; width: 80%"
@@ -666,7 +653,7 @@
           </aside>
         </section>
         <section>
-          <h2>Grain Size - Lower Bound</h2>
+          <h2>Grain Size &#8211; Lower Bound</h2>
           <div id="grain-size-graph-1"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -678,7 +665,7 @@
           </aside>
         </section>
         <section>
-          <h2>Grain Size - Upper Bound</h2>
+          <h2>Grain Size &#8211; Upper Bound</h2>
           <div id="grain-size-graph-2"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
@@ -735,7 +722,7 @@
           </aside>
         </section>
         <section>
-          <h2>SIMD - Chunk Sizes</h2>
+          <h2>SIMD &#8211; Chunk Sizes</h2>
           <div id="simd-alignment-graph"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>

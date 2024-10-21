@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="281.42194mm"
+   height="160.96881mm"
+   viewBox="0 0 281.42194 160.96881"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25)"
+   sodipodi:docname="request_based.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="1.0141844"
+     inkscape:cx="477.23077"
+     inkscape:cy="335.73776"
+     inkscape:window-width="2560"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="marker6"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Triangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker6-8"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path6-4" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker6-8-1"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path6-4-0" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker6-7"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path6-45" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker6-8-1-8"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path6-4-0-6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Triangle-6"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135-4" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker8"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path8" />
+    </marker>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-83.877016,-28.019302)">
+    <path
+       id="rect1"
+       style="fill:#191919;stroke-width:1.28807;paint-order:markers stroke fill"
+       d="M 83.877016,28.019302 H 365.29895 V 188.98812 H 83.877016 Z" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:12.7px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;paint-order:markers stroke fill"
+       x="338.50897"
+       y="40.912235"
+       id="text6"><tspan
+         sodipodi:role="line"
+         id="tspan6"
+         style="font-size:12.7px;fill:#ffffff;stroke:none;stroke-width:1.243"
+         x="338.50897"
+         y="40.912235">Start</tspan></text>
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker8);paint-order:markers stroke fill"
+       d="M 337.74467,45.360519 V 74.24845"
+       id="path7"
+       sodipodi:nodetypes="cc" />
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       id="rect2"
+       width="44.097687"
+       height="34.392044"
+       x="316.13358"
+       y="81.821243"
+       ry="5.6151867" />
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       id="rect2-9"
+       width="44.097687"
+       height="34.392044"
+       x="89.308678"
+       y="147.66725"
+       ry="5.6151867" />
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       id="rect2-9-9"
+       width="44.097687"
+       height="34.392044"
+       x="89.308678"
+       y="99.356026"
+       ry="5.6151867" />
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       id="rect2-9-9-1"
+       width="44.097687"
+       height="34.392044"
+       x="89.308678"
+       y="51.044788"
+       ry="5.6151867" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="338.31052"
+       y="93.201378"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="font-size:8.46667px;fill:#000000;stroke-width:1.643"
+         x="338.31052"
+         y="93.201378">Output</tspan></text>
+    <g
+       id="g4"
+       transform="translate(-26.637568,-1.7335645)">
+      <rect
+         style="fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+         id="rect2-1"
+         width="44.097687"
+         height="66.021805"
+         x="235.44095"
+         y="75.424515"
+         ry="5.6151867" />
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+         x="258.08911"
+         y="86.993576"
+         id="text2-8"><tspan
+           sodipodi:role="line"
+           style="font-size:8.46667px;fill:#000000;stroke-width:1.643"
+           x="258.08911"
+           y="86.993576"
+           id="tspan3">Switch</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:7.05556px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+         x="257.96753"
+         y="103.14857"
+         id="text2-8-5"><tspan
+           sodipodi:role="line"
+           style="font-size:7.05556px;fill:#000000;stroke-width:1.643"
+           x="257.96753"
+           y="103.14857"
+           id="tspan3-9">Condition</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:7.05556px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+         x="248.74826"
+         y="119.40617"
+         id="text2-8-5-9"><tspan
+           sodipodi:role="line"
+           style="font-size:7.05556px;fill:#000000;stroke-width:1.643"
+           x="248.74826"
+           y="119.40617"
+           id="tspan3-9-1">False</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:7.05556px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+         x="247.19603"
+         y="135.30917"
+         id="text2-8-5-9-1"><tspan
+           sodipodi:role="line"
+           style="font-size:7.05556px;fill:#000000;stroke-width:1.643"
+           x="247.19603"
+           y="135.30917"
+           id="tspan3-9-1-5">True</tspan></text>
+    </g>
+    <path
+       style="fill:#000000;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#Triangle);paint-order:markers stroke fill"
+       d="M 313.09914,98.423406 H 259.86565"
+       id="path4"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#000000;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#Triangle-6);paint-order:markers stroke fill"
+       d="m 256.38654,105.14936 h 52.31924"
+       id="path4-5"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="285.42493"
+       y="94.913803"
+       id="text4"><tspan
+         sodipodi:role="line"
+         id="tspan4"
+         style="fill:#ffffff;stroke:none;stroke-width:1.643"
+         x="285.42493"
+         y="94.913803">Request</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="173.56952"
+       y="113.54942"
+       id="text4-15"><tspan
+         sodipodi:role="line"
+         id="tspan4-5"
+         style="fill:#ffffff;stroke:none;stroke-width:1.643"
+         x="173.56952"
+         y="113.54942">Unused</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="97.890648"
+       y="198.77313"
+       id="text4-15-5"
+       transform="rotate(-24.202387)"><tspan
+         sodipodi:role="line"
+         id="tspan4-5-6"
+         style="fill:#ffffff;stroke:none;stroke-width:1.643"
+         x="97.890648"
+         y="198.77313">Request</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:8.46667px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:none;stroke-width:1.643;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="190.86563"
+       y="-4.7809477"
+       id="text4-1"
+       transform="rotate(25.530894)"><tspan
+         sodipodi:role="line"
+         id="tspan4-9"
+         style="fill:#ffffff;stroke:none;stroke-width:1.643"
+         x="190.86563"
+         y="-4.7809477">Request</tspan></text>
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker6);paint-order:markers stroke fill"
+       d="M 205.16195,95.603518 142.13175,67.600836"
+       id="path5"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker6-7);paint-order:markers stroke fill"
+       d="m 137.14989,72.498943 64.314,28.573037"
+       id="path5-5"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker6-8);paint-order:markers stroke fill"
+       d="m 204.97023,116.17833 -63.24107,1e-5"
+       id="path5-0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker6-8-1);paint-order:markers stroke fill"
+       d="M 204.79945,129.15988 140.8402,158.36167"
+       id="path5-0-3"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:1.243;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#marker6-8-1-8);paint-order:markers stroke fill"
+       d="m 137.01756,168.66177 66.42705,-30.32851"
+       id="path5-0-3-8"
+       sodipodi:nodetypes="cc" />
+  </g>
+</svg>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="507.33029mm"
+   height="98.504601mm"
+   viewBox="0 0 507.33029 98.504603"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25)"
+   sodipodi:docname="two_pass.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.71713664"
+     inkscape:cx="757.17787"
+     inkscape:cy="257.27315"
+     inkscape:window-width="2560"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="Triangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135" />
+    </marker>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(82.661226,-105.87355)">
+    <path
+       id="rect1"
+       style="fill:#191919;stroke-width:1.3529;paint-order:markers stroke fill"
+       d="M -82.661226,105.87355 H 424.66906 v 98.5046 H -82.661226 Z" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:40.469px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';fill:#ffffff;stroke:#000000;stroke-width:1.52202;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="4.6068234"
+       y="146.26938"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="text-align:center;text-anchor:middle;fill:#ffffff;stroke-width:1.52202"
+         x="4.6068182"
+         y="146.26938">Filter</tspan><tspan
+         sodipodi:role="line"
+         style="text-align:center;text-anchor:middle;fill:#ffffff;stroke-width:1.52202"
+         x="4.6068239"
+         y="196.85564"
+         id="tspan2">Nodes</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-size:40.469px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:#000000;stroke-width:1.52202;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
+       x="314.73486"
+       y="170.17203"
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         style="stroke-width:1.52202"
+         x="314.73486"
+         y="170.17203">Evaluate</tspan></text>
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:3.36565;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;marker-end:url(#Triangle);paint-order:markers stroke fill"
+       d="m 85.835337,155.12584 104.955343,1e-5"
+       id="path3" />
+  </g>
+</svg>
