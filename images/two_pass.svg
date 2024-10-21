@@ -24,7 +24,7 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="0.71713664"
-     inkscape:cx="757.17787"
+     inkscape:cx="757.17788"
      inkscape:cy="257.27315"
      inkscape:window-width="2560"
      inkscape:window-height="1011"
@@ -66,19 +66,14 @@
     <text
        xml:space="preserve"
        style="font-weight:bold;font-size:40.469px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';fill:#ffffff;stroke:#000000;stroke-width:1.52202;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
-       x="4.6068234"
-       y="146.26938"
+       x="-5.260335"
+       y="168.77928"
        id="text1"><tspan
          sodipodi:role="line"
-         id="tspan1"
          style="text-align:center;text-anchor:middle;fill:#ffffff;stroke-width:1.52202"
-         x="4.6068182"
-         y="146.26938">Filter</tspan><tspan
-         sodipodi:role="line"
-         style="text-align:center;text-anchor:middle;fill:#ffffff;stroke-width:1.52202"
-         x="4.6068239"
-         y="196.85564"
-         id="tspan2">Nodes</tspan></text>
+         x="-5.2603402"
+         y="168.77928"
+         id="tspan2">Filter</tspan></text>
     <text
        xml:space="preserve"
        style="font-weight:bold;font-size:40.469px;font-family:'FiraCode Nerd Font';-inkscape-font-specification:'FiraCode Nerd Font Bold';text-align:center;text-anchor:middle;fill:#ffffff;stroke:#000000;stroke-width:1.52202;stroke-linecap:round;stroke-linejoin:bevel;paint-order:markers stroke fill"
