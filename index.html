@@ -518,7 +518,7 @@
           <h3><em>Latency</em>: Time per Element</h3>
           <h3><em>Throughput</em>: Elements per Time</h3>
           <hr />
-          <h4>Which should we optimize for?</h4>
+          <h4>What should we optimize for?</h4>
           <div
             class="polli-live-choice"
             id="latency-vs-throughput"
@@ -615,11 +615,11 @@
               <td>+&#8201;30&#8201;kb</td>
             </tr>
             <tr>
-              <td><code>SomeSpanOrSingle<0></0></code></td>
+              <td><code>SomeSpanOrSingle</code></td>
               <td>+&#8201;137&#8201;kb</td>
             </tr>
             <tr>
-              <td><code>AllSpanOrSingle<0></0></code></td>
+              <td><code>AllSpanOrSingle</code></td>
               <td>+&#8201;1100&#8201;kb</td>
             </tr>
           </table>
@@ -667,6 +667,7 @@
         </section>
         <section>
           <h2>Multi Threading</h2>
+          <img src="images/multi_threading_grains_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * Compared to multi-threading lazy function graph evaluation, it is much easier for array processing.
@@ -761,11 +762,11 @@
           </aside>
         </section>
         <section>
-          <h2>Key Takeaways</h2>
+          <h2>Final Thoughts</h2>
           <em>
             <p>Optimize optimizability.</p>
-            <p>Don't be lazy with lazyness.</p>
-            <p>Compare against optimal performance.</p>
+            <p class="fragment custom blur">Don't be lazy with lazyness.</p>
+            <p class="fragment custom blur">Estimate optimal performance.</p>
           </em>
         </section>
       </div>
@@ -919,8 +920,8 @@
       make_graph(
         "analysis/simd_alignment.csv",
         "simd-alignment-graph",
-        "Elements",
-        "Iterations per ns",
+        "Array Size",
+        "Performance",
         (x) => x >= 32 && x < 500
       );
 
