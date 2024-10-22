@@ -25,7 +25,10 @@ jobs:
         run: npm install
 
       - name: Start presentation server
-        run: npm start -- --port 8000
+        run: npm start -- --port 8000 &
+
+      - name: Wait
+        run: sleep 10
 
       - name: Generate PDF
         run: decktape reveal --fragments http://localhost:8000 slides.pdf
