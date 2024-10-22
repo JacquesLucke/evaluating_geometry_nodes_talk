@@ -70,6 +70,16 @@
       .filter-lazy-function-graph-svg {
         filter: invert(90%);
       }
+
+      .combinatorial-explosion-table td:nth-child(1) {
+        text-align: center !important;
+      }
+
+      .devirtualization-table td:nth-child(2),
+      .devirtualization-table td:nth-child(3),
+      .devirtualization-table td:nth-child(4) {
+        text-align: right !important;
+      }
     </style>
   </head>
   <body>
@@ -594,36 +604,66 @@
         </section>
         <section>
           <h2>Combinatorial Explosion</h2>
-          <p>
-            <em>Binary Size</em> /
-            <em>Compilation Time</em>
-          </p>
-          <p>vs.</p>
-          <p><em>Performance</em></p>
-          TODO: Better organize combinatorial explosion and solution.
-          <table>
+          <table style="font-size: 70%" class="combinatorial-explosion-table">
             <tr>
-              <th>Method</th>
-              <th>Size</th>
+              <th>Case</th>
+              <th>Input 1</th>
+              <th>Input 2</th>
+              <th>Input 3</th>
             </tr>
             <tr>
-              <td><code>Simple</code></td>
-              <td><code>-</code></td>
+              <td>1</td>
+              <td>Single</td>
+              <td>Single</td>
+              <td>Single</td>
             </tr>
             <tr>
-              <td><code>Materialized</code></td>
-              <td>+&#8201;30&#8201;kb</td>
+              <td>2</td>
+              <td>Single</td>
+              <td>Single</td>
+              <td>Array</td>
             </tr>
             <tr>
-              <td><code>SomeSpanOrSingle</code></td>
-              <td>+&#8201;137&#8201;kb</td>
+              <td>3</td>
+              <td>Single</td>
+              <td>Array</td>
+              <td>Single</td>
             </tr>
             <tr>
-              <td><code>AllSpanOrSingle</code></td>
-              <td>+&#8201;1100&#8201;kb</td>
+              <td>4</td>
+              <td>Single</td>
+              <td>Array</td>
+              <td>Array</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Array</td>
+              <td>Single</td>
+              <td>Single</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Array</td>
+              <td>Single</td>
+              <td>Array</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>Array</td>
+              <td>Array</td>
+              <td>Single</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>Array</td>
+              <td>Array</td>
+              <td>Array</td>
             </tr>
           </table>
-
+          <p>
+            <em>Binary Size</em> / <em>Compilation Time</em> vs.
+            <em>Performance</em>
+          </p>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * There is one big problem with generating optimized versions for the different kinds of inputs to a multi-function.
@@ -641,17 +681,42 @@
             [](int a, int b) {
               return a + b;
             },
-            build::exec_presets::AllSpanOrSingle());
+            build::exec_presets::SomeSpanOrSingle<0>());
           </script></code></pre>
-          <p class="fragment custom blur">
-            <code>Add:</code> <em>1296</em>&#8201;ms &#10230;
-            <em>68</em>&#8201;ms &#10230; <em>42</em>&#8201;ms
-          </p>
-          <p class="fragment custom blur">
-            <code>Logarithm:</code>
-            <em>240</em>&#8201;ms &#10230; <em>71</em>&#8201;ms &#10230;
-            <em>63</em>&#8201;ms
-          </p>
+          <table style="font-size: 70%" class="devirtualization-table">
+            <tr>
+              <th>Method</th>
+              <th style="text-align: center">
+                <span style="font-style: italic">Map Range</span> Size
+              </th>
+              <th style="text-align: center; font-style: italic">Add</th>
+              <th style="text-align: center; font-style: italic">Logarithm</th>
+            </tr>
+            <tr>
+              <td><code>Simple</code></td>
+              <td><code>-</code></td>
+              <td><em>1296</em>&#8201;ms</td>
+              <td><em>240</em>&#8201;ms</td>
+            </tr>
+            <tr>
+              <td><code>Materialized</code></td>
+              <td><em>+&#8201;30</em>&#8201;kb</td>
+              <td><em>68</em>&#8201;ms</td>
+              <td><em>71</em>&#8201;ms</td>
+            </tr>
+            <tr>
+              <td><code>SomeSpanOrSingle</code></td>
+              <td><em>+&#8201;137</em>&#8201;kb</td>
+              <td><code>-</code></td>
+              <td><code>-</code></td>
+            </tr>
+            <tr>
+              <td><code>AllSpanOrSingle</code></td>
+              <td><em>+&#8201;1100</em>&#8201;kb</td>
+              <td><em>42</em>&#8201;ms</td>
+              <td><em>63</em>&#8201;ms</td>
+            </tr>
+          </table>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
             * We deal with that problem in two ways.
