@@ -1,0 +1,37 @@
+name: Build PDF
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install DeckTape
+        run: npm install -g decktape
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start presentation server
+        run: npm start --port 8000
+
+      - name: Generate PDF
+        run: decktape reveal --fragments http://localhost:8000 slides.pdf
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v3
+        with:
+          name: evaluating_geometry_nodes.pdf
+          path: ./slides.pdf
