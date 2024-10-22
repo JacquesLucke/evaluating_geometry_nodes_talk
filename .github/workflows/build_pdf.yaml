@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "20"
 
       - name: Install DeckTape
         run: npm install -g decktape
@@ -34,7 +34,7 @@ jobs:
         run: decktape reveal --fragments http://localhost:8000 slides.pdf
 
       - name: Upload PDF
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: evaluating_geometry_nodes.pdf
           path: ./slides.pdf
