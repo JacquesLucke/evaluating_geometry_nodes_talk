@@ -90,6 +90,8 @@
           <h2 class="r-fit-text">Evaluating Geometry Nodes</h2>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
+            * Hello! As many have seen already, this presentation has an interactive component. You can participate using this QR code.
+            * Next slide.
           </aside>
         </section>
         <section>
@@ -128,6 +130,8 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
+            * This is a bit of an experiment from my side, so lets see if that works as expected.
+            * Wait a bit, then continue.
           </aside>
         </section>
         <section>
@@ -387,7 +391,7 @@
               * each has stack of paper with tasks
               * strategy 1: manager assigns tasks
               * strategy 2: idle workers walk around and steal stacks of tasks
-            * thread task list, idle threads randomly steal
+            * create thread pool, thread task list, idle threads randomly steal
             * scales well to many threads
           </aside>
         </section>
@@ -444,6 +448,7 @@
               * input for each index, compute output for each index
               * see slide example
             * goal: high performance, low peak memory
+            * solution: 2
             * first: two things we are not doing yet
           </aside>
         </section>
@@ -468,7 +473,7 @@
             * generate optimal machine code
             * Easier than gpu, similar problems (compile time!, fast fallback, other bottlenecks)
             * expected speedup? (in experiment < 2x, simple math, hard to be certain)
-            * negilible speedup for more complex functions (sqrt, logarithm, noise)
+            * negilible speedup for more complex functions (sqrt, logarithm)
             * many nodes needed before noticable speedup
             * not worth the complexity yet
           </aside>
@@ -668,11 +673,12 @@
           <img src="images/multi_threading_grains_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Compared to multi-threading lazy function graph evaluation, it is much easier for array processing.
-            * Array processing is embarrassingly parallel, so we can just split the work into chunks and evaluate them in parallel.
-            * The nice side-benefit of working with chunks is that it reduces the peak memory usage.
-              * That's because the chunk size also determines how large the arrays for intermediate results have to be.
-            * The main question is which grain size should be used.
+            * simple compare to lazy function graph
+            * approaches: see slide
+            * embarrassingly parallel
+            * use chunks
+            * lower peak memory usage compared to "full"
+            * which grain size?
           </aside>
         </section>
         <section>
@@ -680,11 +686,12 @@
           <div id="grain-size-graph-1"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * There typically is not the perfect grain size as it depends on many parameters.
-            * However, using some simple experiments one can make a good enough educated choice.
-            * The graph shows how the grain size affects the evaluation time of a simple setup with a long chain of math nodes and lots of points (100M).
-            * As one would expect, choosing a grain size that is too small is bad because it increases the overhead of distributing tasks to threads and the code has to iterate over all the nodes more often.
-            * In this graph it looks like the grain size can't be too large, however that is far from true.
+            * make educated guess
+            * experiment: long chain of math nodes, 100M points
+            * explain slide
+            * can grain size be too large?
+              * less threading (too few tasks)
+              * even worse: next slide
           </aside>
         </section>
         <section>
@@ -692,28 +699,16 @@
           <div id="grain-size-graph-2"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * The most common reason for why a grain size can be too large is that it decreases the number of threads that can work concurrently.
-              * For example, if there are 100.000 elements and the grain size is 10.000, only 10 threads can work concurrently.
-              * With a grain size of 50.000, only 2 threads can work at the same time.
-            * However, that is not the cause for these huge performance drops we see in this graph.
-              * I controlled for this by processing 100M elements, so that there is enough work for all threads even if the grain size is large.
-            * Instead, what we see here is the effect of caching in the CPU.
-              * At a grain size of 400k and 800k, some caches are full so that the evaluation has to work with the next slower cache level or main memory.
-              * Note that typically we want to use cpu caches because they have a much lower latency than main memory.
-              * However, here the latency actually does not matter. Instead, the memory bandwidth is the limiting factor.
-              * Caches build into the CPU have bandwidths of about 1TB/s, while main memory is more in the range of 50GB/s.
-              * Having all CPU cores read from main memory at the same time can easily saturate the memory bandwidth and even make it slower than if there were fewer running threads.
-              * We also noticed that effect in other places, e.g. when copying large chunks of memory.
-                * Using multiple-threads to copy memory can improve performance, but after a certain number of threads the performance drops again.
-                * Internally, we limit the number of threads for such cases nowadays.
-            * The good news is that we have a very long range of grain sizes that seem to deliver good performance.
-              * Currently, we just picked the lower end of that range (10.000) as the grain size we use by default.
-              * In more complex node trees, more intermediate buffers are necessary, but those will still fit in cache if the grain size is low enough.
-            * Reusing memory for intermediate results is surprisingly important for the same reason a too large grain size can be bad.
-            * Not reusing memory can increase peak memory usage quite a bit which makes the CPU caches less effective.
-            * When an array that was just used before is used again, it's addresses are likely still in cache which improves memory access performance.
-            * Obviously, just avoiding unnecessary calls into the global allocator is also beneficial.
-            * Numbers on the slide show the performance of a simple node tree with absolutely no and with good memory reuse.
+            * CPU Cache utilization
+              * up to a couple of megabytes
+              * better latency (not important here) + better bandwidth (1TB/s  vs. 50GB/s)
+              * intermediate memory must be small enough
+              * two jumps where caches are full
+            * saturate main memory bandwidth (limit threads)
+            * good news: long range of good sizes
+            * pick low end: 10.000 (better threading, supports more intermediate buffers)
+            * reuse memory!
+            * Omar cpu compositor: 40x math node chain
           </aside>
         </section>
         <section>
@@ -752,17 +747,16 @@
           </table>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * SIMD stands for Single Instruction, Multiple Data.
-            * Here it refers to special instructions in modern CPUs that allow each core to process multiple elements at once.
-            * E.g. instead of only performing a single integer addition, it can do 2, 4, or 8 or even 16 at the same time depending on the architecture.
-            * Officially distributed Blender builds are only compiled with SSE2 support, which means that we are limited to processing 4 elements at once.
-            * However, even with that we can get some nice speedups.
-              * The numbers on the slide show the performance of some Add nodes without SIMD, with SSE2 and with AVX2 instructions.
-              * As you can see, we get 2.6x better performance even with just SSE2 which is quite good considering that these numbers are measuring the full field evaluation and the optimization only affects a tiny part of it.
-              * While we would benefit from larger SIMD registers, the performance gain would not be as great as one would hope without further changes.
-              * To really benefit from those, we'd likely have to use JIT compilation to perform loop fusion to reduce the memory access overhead.
-            * All vectorization we use for multi-functions is currently done the compiler and we just wrote the code carefully while making sure that the compiler can vectorize it.
-              * Fortunately, all the simple math functions go through the same hot loop, so it only had to be optimized once.
+            * Single Instruction, Multiple Data
+            * CPU instruction set
+            * do 2, 4, 8, 16 int additions at once
+            * show slide code, fallback loop
+            * official 4x in Blender
+            * good speedup possible
+            * see slide table
+            * just-in-time compilation can help with newer cpus, native instructions, loop fusion
+            * all auto-vectorize: no manual intrinsics (single hot loop)
+              * carefully checked compiler output, have benchmark
           </aside>
         </section>
         <section>
@@ -770,14 +764,11 @@
           <div id="simd-alignment-graph"></div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * When using SIMD, one usually has two loops.
-              * One that is very fast and processes everything that can be processed with SIMD instructions.
-              * However, if the number of elements is not divisible by the SIMD width times loop unrolling factor, a fallback loop is necessary that processes the remaining elements.
-            * It's quite possible that more time is spend in the fallback loop than the main one of the number of elements is badly aligned.
-            * The shown graph is from a performance experiment I did a few years ago.
-              * It shows how performance gets worse the more elements there are that are not aligned.
-            * When using standard `parallel_for` from TBB, the ranges are rarely well aligned.
-            * We use a small wrapper around `parallel_for` for multi-functions, that ensure that the chunk sizes are better aligned.
+            * fallback loop bad performance sometimes
+            * chunk size 32, many fallback iterations
+            * compiler may generate multiple fallbacks (larger binary)
+            * align chunk size to simd width * unroll factor
+            * small wrapper around `parallel_for` from TBB
           </aside>
         </section>
         <section>
@@ -787,6 +778,10 @@
             <p class="fragment custom blur">Don't be lazy with lazyness.</p>
             <p class="fragment custom blur">Estimate optimal performance.</p>
           </em>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+            * see slide
+          </aside>
         </section>
       </div>
     </div>
