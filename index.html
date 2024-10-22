@@ -88,6 +88,9 @@
       <div class="slides">
         <section>
           <h2 class="r-fit-text">Evaluating Geometry Nodes</h2>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+          </aside>
         </section>
         <section>
           <div
@@ -123,16 +126,18 @@
               </div>
             </div>
           </div>
+          <!-- prettier-ignore -->
+          <aside class="notes" data-markdown>
+          </aside>
         </section>
         <section>
           <img src="images/topics_no_fonts.svg" style="width: 70%" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Start with showing some simpler evaluation methods to set the scene.
-              * These are also methods that make sense when just starting out to build a new node system.
-            * Then we have a look at how the geometry nodes graph is processed and how it is evaluated at a high level.
-            * Lastly, we have a look at how math functions are evaluated as part of field evaluation.
-            * This is a technical talk that's mainly geared towards developers curious about how geometry nodes works internally, or who are building their own evaluation system.
+            * Technical talk for curious and node system devs
+            * Simple evaluation approaches, used a lot anyway, to get started
+            * Lazy Graph evaluation in geometry nodes
+            * Evaluating math functions on large amounts of data
           </aside>
         </section>
         <section>
@@ -144,14 +149,10 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * I'm also curious about the background of the audience.
-            * Personally, I'm more on the technical side, but I'm always most impressed by people who combine technical and artistic skills.
-              * Like Simon Thommes who is a great help in the geometry nodes team bridging the gap between the two worlds.
-            * I started building node systems for Blender about 10 years ago when I was still in school (Animation Nodes).
-            * Hired by Blender after my studies in 2018 and am working remotely from the Berlin area nowadays.
-            * Lead developer for geometry nodes since the beginning in 2020.
-            * Best thing about the job is seeing all the cool stuff people make with the tools Hans and I implement in our living rooms, with the help of many others of course.
-              * I'm thankful for everyone who shares their early experiments especially when testing new features. It's super helpful and motivating.
+            * Before that, want to know who is here.
+            * "both" is impressive, can do crazy stuff, Simon, bridge gaps
+            * I: lead developer, 10 years, hired in 2018, remote with Hans
+            * Love seeing shared experiments
           </aside>
         </section>
         <section>
@@ -159,8 +160,8 @@
           <img src="images/get_started.png" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * The image shows a simple node tree that I'll use as starting point to discuss some of the core concepts.
-            * Using it I'll explain some simple graph evaluation strategies.
+            * start simple, general approaches
+            * assume people know what this does
           </aside>
         </section>
         <section>
@@ -174,15 +175,14 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * The simplest mechanims is to simply sort the nodes topologically.
-              * That means that we order the nodes in a way that nodes always come after everything they depend on.
-              * The ordering is always possible unless there are cycles in the node tree, but none of the other methods work in that case either.
-            * Once sorted, we can just evaluate the nodes one after the other making sure we pass data correctly between them.
-            * This general approach was used by Animation Nodes, with the addition that after sorting a Python script is generated that executes the nodes.
-            * While very simple, this approach in its pure form has some significant limitations like:
-              * All nodes are always evaluated, even if they are not needed.
-              * It's hard to parallelize the evaluation.
-            * While just using toposort is not great for evaluation, it's still a very important concept that's used in many places in Blender when analysing node trees.
+            * Simplest solution: toposort, dependencies come first
+            * cyclic links
+            * evaluate in sorted order
+            * Animation Nodes + Python script
+            * Limitations: unneeded nodes, hard parallelization
+            * good when all nodes are active
+            * Important concept for other algorithms
+            * multiple orderings: yes
           </aside>
         </section>
         <section>
@@ -194,14 +194,11 @@
           <img src="images/two_pass_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * A way to remedy the first problem is to process nodes in two passes.
-              * In the first pass, we figure out which nodes are needed for the final result.
-              * In the second pass, we only evaluate the nodes that are needed.
-            * In the example here that means that we detect that the second Add node is not needed and it can be ignored.
-            * In this case it's obvious because the output of the node is not used at all.
-            * However, some more complex cases can be handled with this approach too.
-              * The dependency graph evaluation uses a separate pass to first determine when objects are visible in the case of animated visibility.
-              * Cycles uses this approach to optimize e.g. Mix nodes when the mix factor is a constant 0 or 1 so that one of the inputs can be ignored.
+            * two passes: filter, evaluate
+            * Example, second add node not neeeded, no output used
+            * More complex cases:
+              * dependency graph: animated visibility
+              * cycles: mix node factor 0 or 1
           </aside>
         </section>
         <section>
@@ -209,28 +206,20 @@
           <img src="images/request_based_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * So far we've only looked at what I'd call push based evaluation.
-              * That means that we first determine all nodes to evaluate and then start evaluating them at the beginning.
-            * That can be good enough for many kinds of node systems.
-              * It's used by shader (eevee and cycles) and compositor evaluation.
-            * It's far from ideal for geometry nodes:
-              * The problem is that we just can't determine which nodes have to be evaluated before having evaluated potentially large parts of the node tree already.
-              * Also, the condition of switch nodes may depend on the result of other switch nodes.
-              * Users have to be able to trust that when a switch node disables part of the node tree, that those nodes really won't be evaluated.
-            * A solution is to use what I call a pull based evaluation system.
-              * No preprocessing is necessary to determine which nodes are necessary.
-              * That means, the evaluation does not start at the input, but at the output.
-              * When a node is evaluated, it first requests the missing inputs from the nodes that come before.
-              * Importantly, it does not have to request all of them at the same time.
-                * For example, the switch node first only requests the condition input.
-                * Once that comes back, it can request one of the remaining inputs.
-            * This can be implemented relatively easily with a recursive evaluator.
-              * Was done for the first geometry nodes evaluator.
-              * Has significant limitations:
-                * Single threaded
-                * Long chains of nodes result in a long call stack which can lead to a stack overflow with just a few hundred nodes.
-            * Solving this generically comes with some extra complexity, especially if multi-threaded evaluation has to be supported too.
-            * Next I'll present the internal evaluation system we actually use for geometry nodes.
+            * before: find first, then evaluate
+            * before: used in shader (eevee, cycles), compositor
+            * bad for geometry nodes:
+              * can't determine active nodes without evaluation
+              * switch nodes depend on each other
+              * trust disabled nodes (timing makes explicit)
+            * solution: request based evaluation
+              * no preprocessing
+              * start at output
+              * request inputs recursively (see slide)
+            * recursive evaluator:
+              * was initial implementation
+              * limitations: single threaded, easy stack overflow
+              * next step: solve more generically (complex with multi-threading)
           </aside>
         </section>
         <section>
@@ -256,13 +245,13 @@
           </script></code></pre>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * At the core of our lazy evaluation system is the `LazyFunction` class.
-            * All nodes are implemented as lazy-function in Geometry Nodes.
-              * That may not be immediately obvious when working on nodes though.
-              * That's because most nodes use a more high-level API that hides away the lazyness aspect.
-              * More special nodes like the different kinds of Switch nodes are implemented directly as `LazyFunction` though.
-            * A lazy function uses the following methods to interact with its inputs and outputs...
-            * The lazy-function API is independent of geometry nodes, so it can also be tested independently.
+            * Core: lazy function class
+              * lazily computes outputs and requests inputs
+            * go over example
+            * all geometry nodes are lazy functions
+            * higher level api for most nodes, without lazyness
+            * special nodes use LazyFunction directly
+            * independent of geometry nodes (for testing, mental model)
           </aside>
         </section>
         <section>
@@ -277,15 +266,12 @@
           />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Each geometry node tree is first converted into a lazy function graph like the one shown here.
-            * It's typically very similar to the corresponding node tree with some differences:
-              * It has some extra stuff that's needed to handle the lifetimes of anonymous attributes.
-                * See the "Usage" and "Propagate" sockets.
-              * Zones are also represented differently in the graph.
-            * The geometry nodes modifier or node tools operator then takes this generated lazy-function graph and evaluates it.
-            * For that it provides all the inputs and requests all the main outputs.
-            * It's a limitation that the modifier always has to provide all inputs, but lazyness is not possible outside of the modifier yet.
-            * For debugging purposes, this graph can be visualized using a Core Debug Tools add-on that can be installed via the extensions platform.
+            * combine lazy functions to graph
+            * similar to node graph, small differences (lifetimes, zones)
+            * most complex part: evaluate graph, with message passing
+            * modifier, tools: provide inputs and handle outputs
+            * lazyness only within modifier
+            * Core Debug Tools add-on, extensions platform
           </aside>
         </section>
         <section>
@@ -293,17 +279,9 @@
           <img src="images/shared_mesh_references_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * The order in which the messages are processed it not important for correctness.
-            * However, it can have a significant impact on performance.
-            * In this case we'd expect that we never have to make a copy of the cube mesh.
-            * A copy could happen though if the condition is True.
-              * In that case, the cube mesh is forwarded to the Set Position node and Switch node.
-              * Internally there are now two references to the cube mesh.
-              * So when the Set Position node wants to modify it, it first has to make a copy to avoid changing the other one.
-            * This is solved by giving the messages that specify that a certain input is not required higher priority.
-              * Then we know that the False input of the switch node is not needed and the Set Position node is the sole owner of the mesh.
-            * This used to be a relatively large problem, but it's a bit better now since we make extensive use of implicit sharing on geometry data structures.
-              * That means that when a geometry is copied, we rarely have to copy large arrays, but only increase their references counts.
+            * message types: request, response, unused
+            * order matters, see slide
+            * mesh copy cheaper nowdays: implicit sharing (explain)
           </aside>
         </section>
         <section>
@@ -319,19 +297,16 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Messages may schedule nodes. Now the question is which node to evaluate next when multiple nodes are scheduled.
-            * There are two main strategies:
-              * In breadth first scheduling, we evaluate nodes in the order in which they got scheduled.
-                * So after the Join Geometry node is scheduled, all three Bounding Box nodes are evaluated, which then schedule the three primitive nodes.
-                * Only after all three primitive nodes have been executed, the bounding box nodes are evaluated.
-              * In depth first scheduling, we always evaluate the node that was last scheduled next.
-                * So after the first bounding box node, the corresponding primitive node is evaluted which schedules the bounding box node again.
-                * Then the bounding box node is evaluated before the next node is run.
-            * What do you think is the better main strategy?
-            * Depth first turns out to work better usually, because it leads to a lower peak memory usage.
-            * Also it makes it more likely that the next evaluated node works on the same data that the previous node just created.
-              * This improves cache utilization.
-            * Breadth first is similar to starting tons of projects and then switching between them all the time.
+            * multiple scheduled nodes: evaluation order?
+            * two main strategies:
+              * breadth: FIFO, primitives -> bounding -> join
+              * depth: LIFO (last in first out), (primitive -> bounding) * 2 -> join
+            * analogy:
+              * breadth: start many side projects, working memory overload
+              * depth: finish first
+            * solution: depth first
+              * lower peak memory, better cache usage
+            * initial breadth for multi-threading, usually comes by itself
           </aside>
         </section>
         <section>
@@ -344,11 +319,11 @@
           </p>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * We have a already seen that multiple lazy functions can be combined in a graph.
-            * An important and powerful design aspect is that it is possible to wrap the entire graph in a new lazy function.
-            * This new function can then be used as a single node in a new graph and behaves pretty much exactly the same as if all the nodes were inlined.
-            * This is quite powerful, because it allows building many smaller graphs which can be combined in a bigger one without loosing any of the lazyness.
-            * We make extensive use of that for node groups and zones.
+            * seen before: can create graph
+            * key design aspect: graph itself is lazy function
+              * all lazyness propagates
+            * build smaller graphs + combine, lossless lazyness
+            * used for groups and zones
           </aside>
         </section>
         <section>
@@ -356,19 +331,13 @@
           <img src="images/node_group_fade.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * There are two main ways to handle node groups during node evaluation.
-            * One can inline all nodes into a single node tree or one can keep them separate.
-            * Always inlining has the benefit that it can be done in a preprocessing step and the code afterwards does not have to worry about it anymore.
-              * Specifically, the lazy function graph evaluator would not have to be able to handle nested functions.
-              * Furthermore, some optimizations may be easier to implement on a flat graph instead of a nested one.
-            * All node systems except geometry nodes flatten the entire node tree before evaluation currently.
-            * Geometry nodes does not inline node groups because:
-              * The evaluator would have to be able to handle nesting anyway because of zones.
-              * Geometry nodes trees tend to get much bigger than in other node systems.
-                * Having more than ten thousand nodes after everything is inlined is not uncommon.
-                * It's quite expensive to inline all of that.
-                * Especially, considering that often only a much smaller part is actually evaluated and the rest is disabled by switch nodes when using high level assets.
-              * Currently, we don't have the need to implement optimizations that would require inlining, but if that's really necessary, we can still selectively inline some node groups.
+            * two ways: flatten/inline, separate
+            * flatten: preprocess, simpler evaluation, simpler optimizations (two pass evaluation)
+            * all other node systems flatten tree
+            * Geometry Nodes not:
+              * evaluator needs nesting anyway: zones, nesting = flat for evaluator
+              * node systems too big (>10.000), often large parts disabled in assets
+              * not need for optimizations yet (optional inlining in future?)
           </aside>
         </section>
         <section>
@@ -377,16 +346,12 @@
           <img src="images/repeat_zone.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * When the geometry nodes tree is converted into a lazy-function graph, each zone becomes a single node.
-            * A separate graph is created for each zone.
-            * What kind of graph is created depends on the type of zone.
-            * The Repeat and For Each zone dynamically create a graph that based on the number of iterations.
-            * The shown graph is for a repeat zone with 3 iterations. Note how there are 3 instances of the Repeat Body node which is yet another graph that contains all nodes inside the zone.
-            * This approach has the significant advantage that the existing graph evaluator can be used to evaluate these zones without any extra complexity.
-            * Using the existing evaluator also means that we get all the scheduling and multi-threading optimizations of it for free.
-              * For example, it's perfectly possible that nodes in multiple repeat iterations are evaluated at the same time.
-            * This approach is not ideal for cases where the work done in the zone body is very cheap.
-              * In the future we could try to detect such cases and evaluate such zones in a different way that is faster but does not support lazyness to the same degree.
+            * zone becomes node
+            * Graph created for zone body, like for groups
+            * dynamic graph for repeat/foreach zone, see slide
+            * no changes in core evaluator
+            * benefit: multiple repeat body evaluations
+            * cheap zones: need different solution in future
           </aside>
         </section>
         <section>
@@ -404,11 +369,12 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * In many cases it is possible to evaluate nodes in parallel.
-            * The message passing architecture of the evaluator makes it fairly straight to implement basic multi-threading.
-            * Nodes that are scheduled can be evaluated in parallel.
-            * Each node has a mutex that can be locked when sending a message to it.
-            * Internally that uses a task group provided by the TBB library.
+            * often can evaluate nodes in parallel
+            * node vs. graph parallelization
+            * simplified by message passing
+            * each node has mutex, locked on message
+            * internally use TBB task_group
+              * describe TBB
           </aside>
         </section>
         <section>
@@ -416,12 +382,13 @@
           <img src="images/task_stealing_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Task stealing is the strategy used to distribute work between threads in the TBB library.
-            * It roughly works like so:
-              * Each thread has its own queue of tasks to execute.
-              * When a thread runs out of tasks, it randomly picks another thread and steals half of its tasks.
-              * After a short while, each thread will have work assuming there is enough work.
-            * This is different from e.g. explicitly assigning tasks to threads and has some nice performance and scaling benefits.
+            * task/work stealing = work distribution strategy in TBB
+            * analogy: 20 office workers, aka 20 threads
+              * each has stack of paper with tasks
+              * strategy 1: manager assigns tasks
+              * strategy 2: idle workers walk around and steal stacks of tasks
+            * thread task list, idle threads randomly steal
+            * scales well to many threads
           </aside>
         </section>
         <section>
@@ -430,15 +397,11 @@
           <p><em>Non-Uniform</em> and <em>Unknown</em> Task Sizes</p>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * There is one big issue with the approach I described so far and that is that each communication across threads and each lock comes at a cost.
-            * This cost can be much higher than the actual work done by the nodes, especially when there are many cheap nodes like math nodes.
-            * Ideally, we'd like to detect situations when multi-threading is beneficial and only then use it.
-            * This is not trivial, but lets first look at how that's done in simpler cases.
-            * We always specify the so called "grain size" which is the size of a unit of work.
-            * If the total number of elements to process is smaller, all work is done on the current thread without any multi-threading overhead.
-            * Unfortunately, the same approach does not work for graph evaluation because of two main reasons:
-              * The tasks do not have a uniform size. That implies that a simple grain size does not work because that depends on the size.
-              * Furthermore, we do not even know the task sizes in advance. Most nodes in geometry nodes can be cheap or expensive depending on the specific inputs.
+            * problem: too many small nodes -> too many locks
+            * ideal: use threading only when benefitial
+            * usual solution: grain size
+            * size < grain: no threading
+            * problems: see slide
           </aside>
         </section>
         <section>
@@ -446,17 +409,14 @@
           <img src="images/lazy_threading_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * The solution is to use an approach I call "lazy threading". That works as follows:
-              * By default, the evaluator is single threaded, so no communication between threads and locks are necessary.
-              * While a task is being executed, it may inform the scheduler that invoked it that it takes a while.
-              * The scheduler can then decide to enable multi-threading and to move all tasks that are already scheduled to a task group that other threads can steal from.
-              * After multi-threading is enabled in the scheduler, all messages that are passed around need locks.
-              * However, note that all the nested node graphs are still evaluated in single-thread mode which typically contain the majority of nodes.
-            * The main remaining question is when and how tasks send messages to the scheduler.
-              * It works by letting the scheduler put a custom callback into thread-local storage that the tasks can call (with a simple API).
-              * The when is more tricky because it would be annoying to add extra scheduler specific code in lots of places.
-              * Fortunately, I noticed that we do have that code in many places already.
-              * All the grain sizes we use for `parallel_for` already provide heuristics that can be reused here by just adding a little bit of extra code in `parallel_for`.
+            * solution: "lazy threading"
+              * first single threaded
+              * assume all tasks very small
+              * tasks notify scheduler when large
+              * scheduler becomes multi-threaded (+parent schedulers)
+              * offloads remaining tasks
+            * threadlocal scheduler callback
+            * when to notify? reuse parallel_for grain size + few explicit
           </aside>
         </section>
         <section>
@@ -478,14 +438,13 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * This concludes the lazy evaluation section of the talk.
-            * Next, I'll talk about how we process large quantities of data in geometry nodes.
-            * Those are typically field evaluations potentially involving attributes.
-            * The basic problem statement is fairly simple:
-              * We have an input for each index and want to compute an output for each index.
-              * In this example, we have the radius attribute and index field as input and two math nodes that should be processed.
-            * The goal is of course to do that efficiently and with low peak memory usage.
-            * Before talking about the actual implementation, I want to mention two approaches that we do not use yet.
+            * end of lazy evaluation
+            * next topic: evaluate functions on large data, usually in field evaluations
+            * problem statement:
+              * input for each index, compute output for each index
+              * see slide example
+            * goal: high performance, low peak memory
+            * first: two things we are not doing yet
           </aside>
         </section>
         <section>
@@ -493,20 +452,12 @@
           <img src="images/current_gpu_usage_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Geometry Nodes does not use any GPU acceleration yet.
-            * That is even though all this array processing would be very suitable for the GPU.
-            * The main reasons are:
-              * Using the GPU from Geometry Nodes is more complex than using it in the places that use it already like rendering.
-                * Most systems that use the GPU in Blender run at the very end after the entire scene has been processed. Its output often does not have to be copied back to main memory.
-                * However, geometry nodes runs in the middle of the dependency graph evaluation and its output is frequently used by other parts of Blender that can't run on the GPU.
-                * Moving data back and forth between the CPU and GPU is expensive and detecting when it is worth it is not trivial.
-                * Having many threads that concurrently evaluate geometry nodes interact with the GPU might also need cause problems that we have to develop solutions for.
-              * Shader compilation can be slow and it's not acceptable to have to wait for it all the time.
-                * Evaluating geometry nodes would potentially require lots of shaders to be compiled.
-              * In typical scenes, the array processing is rarely the bottleneck given the optimizations I'll talk about.
-                * Very common bottlenecks are mesh boolean, bvh tree lookups and subdivision surfaces.
-              * We need an efficient CPU implementation anyway.
-            * That said, there are certainly use-cases that would benefit from better GPU support and it's something we'll hopefully look into more in the future.
+            * no gpu, although well suited in general
+              * part of scene evaluation, see slide, transfer cost
+              * slow shader compilation (see eevee), lots of shaders
+              * need fast cpu too
+              * bottlenecks elsewhere (boolean, bvh tree, subdiv)
+            * overall good goal, not a priority yet
           </aside>
         </section>
         <section>
@@ -514,18 +465,12 @@
           <img src="images/jit_pipeline_no_fonts.svg" />
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Using LLVM it's fairly straight forward to generate highly optimized machine code at runtime nowadays.
-            * The motivation for using it is that it can generate code that does the array processing much faster than without code generation.
-            * However, that also comes at a cost:
-              * Similar to shader compilation, compiling with llvm can be quite slow introducing wait times that I just don't want to have in geometry nodes.
-              * It does add a fair amount of complexity and makes debugging harder.
-              * We still need an efficient fallback implementation anyway.
-            * Assuming we can hide the wait times by using the fallback implementation during compilation, all that complexity is only worth it if it actually makes things significantly faster.
-              * I tried to quantify how much speedup we can expect a couple of times and it was never all that much.
-              * In the best case, I maybe got a 2x speedup over what we have a now, but that is assuming you have lots of very simple operations and by that I mean just addition, subtraction and multiplication.
-                * Any slightly more complex operation like division or square root can easily make the difference negilible. Not to mention something like noise functions which are orders of magnitudes slower.
-                * One also already needs lots of math nodes before the benefit becomes noticable, because even just filling a large array with the results is slow compared to the actual computation.
-            * So, there are situations that can benefit from JIT compilation, but it's not enough to justify prioritizing it over many other topics.
+            * generate optimal machine code
+            * Easier than gpu, similar problems (compile time!, fast fallback, other bottlenecks)
+            * expected speedup? (in experiment < 2x, simple math, hard to be certain)
+            * negilible speedup for more complex functions (sqrt, logarithm, noise)
+            * many nodes needed before noticable speedup
+            * not worth the complexity yet
           </aside>
         </section>
         <section>
@@ -543,16 +488,16 @@
           </div>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * With that out of the way, we can talk about the actual implementation.
-            * When designing a system like this, it's important to know what you're optimizing exactly.
-            * There are two main time metrics that can be optimized:
-              * Latency is the time it takes to evaluate a single element. For example, when I have two noise functions and one takes 100ns to evaluate for one position and the other 200ns, the first would have better latency.
-              * Throughput is the number of elements that can be evaluated per time. In the same example, if the first noise function can compute 10.000 positions per ms and the second one 20.000, then the second has a better throughput.
-            * Importantly, optimizing one of them typically implies making the other metric worse.
-            * What do you think which metric we should optimize for?
-            * We optimize for throughput, because in geometry nodes it typically does not matter how long a single operation takes.
-              * Instead it matters that we can do as many as possible per second.
-            * There are cases where optimizing for latency is important though, e.g. when evaluating all the dependencies in an armature or drivers in general.
+            * choose primary optimization metric
+            * contenders: latency, throughput
+            * analogy: cycle path between two villages
+              * single lane high quality: super fast, great latency, bad throughput
+              * very wide path, bad quality: slow, bad latency, large throughput
+            * simulate single particle fast vs. many particles fast
+            * Solution: throughput
+              * worsens latency, improves particles per second
+            * general: one in terms of many vs. many in terms of one (optimizable)
+            * latency important: drivers/constraints in armatures
           </aside>
         </section>
         <section>
@@ -571,23 +516,11 @@
           </script></code></pre>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * Similar to lazy functions from before, we also have a multi-function API.
-            * The name comes from the fact that these functions are designed to be evaluated on multiple elements at the same time.
-            * They handle inputs and outputs different from lazy-functions using the shown functions.
-            * Internally, we use slightly different names but with the same general semantics.
-            * `get_input_varray` returns a so called "virtual array".
-              * That is a readonly array-like data structure that is used to access the input values.
-              * Often it is either backed by an actual array or just a single value. In some more rare cases it can also have a custom callback, e.g. for the index field.
-              * Converting everything to arrays is prohibilitively expensive, because usually most inputs are single values.
-            * `get_output_array` returns a writable array (not a virtual one) that the multi-function can write the results into.
-            * This design puts the burden of managing input and outputs arrays on the caller which is makes it easier to reuse arrays that are already allocated.
-            * This code implements a simple function that adds two integers.
-            * In it's current state, it's not very efficient.
-              * That's because there is virtual function call overhead every time an input is accessed.
-              * For some kinds of functions that's fine, but here that overhead is more costly than the operation itself.
-              * It's possible to check if a virtual array contains an actual array or single value and to optimize for these cases.
-              * That adds a fair amount of boilerplate though.
-              * While it's possible to generalize this "devirtualization", it's still annoying to have to do for every math function.
+            * similar to lazy-function: multi-function
+            * process many elements
+            * see slide
+            * memory management in caller
+            * inefficient: virtual functions, boilerplate
           </aside>
         </section>
         <section>
@@ -601,9 +534,9 @@
           </script></code></pre>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * For that reason, we have simple utilities that build an entire multi-function from a lambda.
-            * Internally, that can implement optimizations like devirtualization.
-            * The `SI2_SO` name specifies that the function takes two inputs and one output.
+            * reduce boilerplate with utils
+            * devirtualization: automatically optimizes for different input types
+            * `SI2_SO`
           </aside>
         </section>
         <section>
@@ -670,9 +603,9 @@
           </p>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * There is one big problem with generating optimized versions for the different kinds of inputs to a multi-function.
-            * If each input can be a single value, or array or something else, we need 3^#Inputs different versions.
-            * For functions with two inputs, that can be ok, but it becomes a real problem when the number of inputs increases.
+            * problem: inputs take many forms (single, array, other)
+            * many input type combinations
+            * trade-off, next slide details
           </aside>
         </section>
         <section>
@@ -723,15 +656,11 @@
           </table>
           <!-- prettier-ignore -->
           <aside class="notes" data-markdown>
-            * We deal with that problem in two ways.
-            * First, we have the ability to control which cases are generated at a high level with a single line.
-              * This makes it easy to check the performance impact of generating more or less cases.
-            * Second, we have a good fallback path that handles most cases very well with a single code path.
-            * The numbers show the time it takes to evaluate many math nodes on 10 million points.
-              * It takes over a second when there is the virtual function call overhead for each access.
-              * Our optimized fallback implementation only needs 68ms.
-              * The fully optimized version is even faster at 42ms but this produces quite a bit more code.
-            * The more complex the functions get, the closer these results are.
+            * solution: 
+              * high level control (easy experimentation)
+              * good fallback (scales linearly with inputs)
+            * template magic...
+            * see slide
           </aside>
         </section>
         <section>
